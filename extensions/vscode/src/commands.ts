@@ -538,47 +538,47 @@ const getCommandsMap: (
         );
       }
     },
-    "continue.focusEditWithoutClear": async () => {
-      captureCommandTelemetry("focusEditWithoutClear");
-      focusGUI();
+    // "continue.focusEditWithoutClear": async () => {
+    //   captureCommandTelemetry("focusEditWithoutClear");
+    //   focusGUI();
 
-      sidebar.webviewProtocol?.request("focusEditWithoutClear", undefined);
+    //   sidebar.webviewProtocol?.request("focusEditWithoutClear", undefined);
 
-      const editor = vscode.window.activeTextEditor;
+    //   const editor = vscode.window.activeTextEditor;
 
-      if (!editor) {
-        return;
-      }
+    //   if (!editor) {
+    //     return;
+    //   }
 
-      const document = editor.document;
+    //   const document = editor.document;
 
-      const existingDiff = verticalDiffManager.getHandlerForFile(
-        document.fileName,
-      );
+    //   const existingDiff = verticalDiffManager.getHandlerForFile(
+    //     document.fileName,
+    //   );
 
-      // If there's a diff currently being applied, then we just toggle focus back to the input
-      if (existingDiff) {
-        sidebar.webviewProtocol?.request("focusContinueInput", undefined);
-        return;
-      }
+    //   // If there's a diff currently being applied, then we just toggle focus back to the input
+    //   if (existingDiff) {
+    //     sidebar.webviewProtocol?.request("focusContinueInput", undefined);
+    //     return;
+    //   }
 
-      const rangeInFileWithContents = getRangeInFileWithContents(false);
+    //   const rangeInFileWithContents = getRangeInFileWithContents(false);
 
-      if (rangeInFileWithContents) {
-        sidebar.webviewProtocol?.request(
-          "addCodeToEdit",
-          rangeInFileWithContents,
-        );
-      } else {
-        const filepath = document.uri.fsPath;
-        const contents = document.getText();
+    //   if (rangeInFileWithContents) {
+    //     sidebar.webviewProtocol?.request(
+    //       "addCodeToEdit",
+    //       rangeInFileWithContents,
+    //     );
+    //   } else {
+    //     const filepath = document.uri.fsPath;
+    //     const contents = document.getText();
 
-        sidebar.webviewProtocol?.request("addCodeToEdit", {
-          filepath,
-          contents,
-        });
-      }
-    },
+    //     sidebar.webviewProtocol?.request("addCodeToEdit", {
+    //       filepath,
+    //       contents,
+    //     });
+    //   }
+    // },
     "continue.exitEditMode": async () => {
       captureCommandTelemetry("exitEditMode");
       await sidebar.webviewProtocol?.request("exitEditMode", undefined);

@@ -342,7 +342,7 @@ export abstract class BaseLLM implements ILLM {
             text =
               "You may need to add pre-paid credits before using the OpenAI API.";
           } else if (
-            resp.status === 401 &&
+            resp.status === 401 &&  // TODO: Update to logout or refresh token
             (resp.url.includes("api.mistral.ai") ||
               resp.url.includes("codestral.mistral.ai"))
           ) {

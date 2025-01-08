@@ -698,6 +698,7 @@ type ContextProviderName =
   | "issue"
   | "repo-map"
   | "url"
+  | "ssi-dev-buddy-context"
   | string;
 
 type TemplateType =
@@ -763,7 +764,9 @@ type ModelProvider =
   | "xAI"
   | "moonshot"
   | "siliconflow"
-  | "function-network";
+  | "function-network"
+  | "ssi-dev-buddy";
+
 
 export type ModelName =
   | "AUTODETECT"

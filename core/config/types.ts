@@ -605,7 +605,8 @@ declare global {
     | "sambanova"
     | "nvidia"
     | "nebius"
-    | "siliconflow";
+    | "siliconflow"
+    | "ssi-dev-buddy";
 
   export type ModelName =
     | "AUTODETECT"

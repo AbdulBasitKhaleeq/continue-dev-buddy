@@ -477,11 +477,11 @@ export function Chat() {
 
           {messages.length === 0 && (
             <>
-              {onboardingCard.show && (
+              {/* {onboardingCard.show && (
                 <div className="mx-2 mt-10">
                   <OnboardingCard activeTab={onboardingCard.activeTab} />
                 </div>
-              )}
+              )} */}
 
               {showTutorialCard !== false && !onboardingCard.open && (
                 <div className="flex w-full justify-center">

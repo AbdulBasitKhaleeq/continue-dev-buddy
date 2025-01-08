@@ -772,19 +772,19 @@ function TipTapEditor(props: TipTapEditorProps) {
     [editor, props.isMainInput],
   );
 
-  useWebviewListener(
-    "focusEditWithoutClear",
-    async () => {
-      if (!props.isMainInput) {
-        return;
-      }
+  // useWebviewListener(
+  //   "focusEditWithoutClear",
+  //   async () => {
+  //     if (!props.isMainInput) {
+  //       return;
+  //     }
 
-      setTimeout(() => {
-        editor?.commands.focus("end");
-      }, 2000);
-    },
-    [editor, props.isMainInput],
-  );
+  //     setTimeout(() => {
+  //       editor?.commands.focus("end");
+  //     }, 2000);
+  //   },
+  //   [editor, props.isMainInput],
+  // );
 
   useWebviewListener(
     "isContinueInputFocused",

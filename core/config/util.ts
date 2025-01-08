@@ -73,6 +73,23 @@ export function addOpenAIKey(key: string) {
   });
 }
 
+export function addUserTokenForSSIDevBuddy(userToken: string) {
+  editConfigJson((config) => {
+    config.models = config.models
+      .filter(
+        (model) =>
+          model.provider === "ssi-dev-buddy",
+      )
+      .map((m: ModelDescription) => {
+        if (m.provider === "ssi-dev-buddy") {
+          m.apiKey = userToken;
+        }
+        return m;
+      });
+    return config;
+  });
+}
+
 export function deleteModel(title: string) {
   editConfigJson((config) => {
     config.models = config.models.filter((m: any) => m.title !== title);

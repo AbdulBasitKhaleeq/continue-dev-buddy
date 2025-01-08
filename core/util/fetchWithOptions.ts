@@ -101,7 +101,6 @@ export function fetchwithRequestOptions(
   } catch (e) {
     console.log("Unable to parse HTTP request body: ", e);
   }
-
   // fetch the request with the provided options
   const resp = fetch(url, {
     ...init,

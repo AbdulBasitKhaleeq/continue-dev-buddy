@@ -208,7 +208,8 @@
             "kindo",
             "moonshot",
             "siliconflow",
-            "function-network"
+            "function-network",
+            "ssi-dev-buddy"
           ],
           "markdownEnumDescriptions": [
             "### OpenAI\nUse gpt-4, gpt-3.5-turbo, or any other OpenAI model. See [here](https://openai.com/product#made-for-developers) to obtain an API key.\n\n> [Reference](https://docs.continue.dev/reference/Model%20Providers/openai)",
@@ -1820,7 +1821,8 @@
                 "os",
                 "repo-map",
                 "greptile",
-                "web"
+                "web",
+                "ssi-dev-buddy-context"
               ],
               "markdownEnumDescriptions": [
                 "Reference the contents of the current changes as given by `git diff`",
@@ -1846,7 +1848,8 @@
                 "Operating system and CPU Information",
                 "Map of files in the repository with important code highlights",
                 "Query your greptile index of the current repo",
-                "Search the web for sources related to your question"
+                "Search the web for sources related to your question",
+                "Search from SSI Dev Buddy knowledgebase"
               ],
               "type": "string"
             },

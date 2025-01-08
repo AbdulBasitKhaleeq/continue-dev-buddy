@@ -14,3 +14,10 @@ export async function getUserToken(): Promise<string> {
   });
   return session.accessToken;
 }
+
+
+export async function setUserToken(token:string) {
+  await vscode.workspace
+      .getConfiguration(EXTENSION_NAME)
+      .update("userToken", token, vscode.ConfigurationTarget.Global);
+}

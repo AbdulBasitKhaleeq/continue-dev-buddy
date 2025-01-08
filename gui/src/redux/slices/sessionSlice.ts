@@ -46,6 +46,7 @@ type SessionState = {
     states: ApplyState[];
     curIndex: number;
   };
+  loggeedInUser: any;
 };
 
 function isCodeToEditEqual(a: CodeToEdit, b: CodeToEdit) {
@@ -81,6 +82,7 @@ const initialState: SessionState = {
     states: [],
     curIndex: 0,
   },
+  loggeedInUser: undefined
 };
 
 export const sessionSlice = createSlice({
@@ -475,6 +477,26 @@ export const sessionSlice = createSlice({
 
       toolCallState.status = "calling";
     },
+    setLoggedInUser: (
+      state,
+      { payload }: PayloadAction<any>,
+    ) => {
+      localStorage.setItem('loggedInUser',JSON.stringify(payload));
+      return {
+        ...state,
+        loggeedInUser: payload,
+      };
+    },
+    logOutUser: (
+      state,
+      { payload }: PayloadAction<any>,
+    ) => {
+      localStorage.removeItem('loggedInUser')
+      return {
+        ...state,
+        loggeedInUser: null,
+      };
+    },
   },
   selectors: {
     selectIsGatheringContext: (state) => {
@@ -547,6 +569,8 @@ export const {
   acceptToolCall,
   setToolGenerated,
   setToolCallOutput,
+  setLoggedInUser,
+  logOutUser
 } = sessionSlice.actions;
 
 export const { selectIsGatheringContext } = sessionSlice.selectors;

@@ -175,4 +175,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
 
   "auth/getAuthUrl": [undefined, { url: string }];
   "tools/call": [{ toolCall: ToolCall }, { contextItems: ContextItem[] }];
+
+  "auth/login": [{ username: string, password: string }, { accessToken: string, user: any }];
+  "auth/logout": [undefined, void];
 };

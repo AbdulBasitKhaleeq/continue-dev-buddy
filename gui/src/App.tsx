@@ -4,7 +4,6 @@ import Layout from "./components/Layout";
 import { VscThemeProvider } from "./context/VscTheme";
 import useSetup from "./hooks/useSetup";
 import { AddNewModel, ConfigureProvider } from "./pages/AddNewModel";
-import ConfigErrorPage from "./pages/config-error";
 import Edit from "./pages/edit";
 import ErrorPage from "./pages/error";
 import Chat from "./pages/gui";
@@ -15,6 +14,8 @@ import MorePage from "./pages/More";
 import Stats from "./pages/stats";
 import { ROUTES } from "./util/navigation";
 import { SubmenuContextProvidersProvider } from "./context/SubmenuContextProviders";
+import ConfigErrorPage from "./pages/config-error";
+import LoginForm from "./forms/LoginForm";
 
 const router = createMemoryRouter([
   {
@@ -45,6 +46,12 @@ const router = createMemoryRouter([
       {
         path: "/addModel",
         element: <AddNewModel />,
+      },
+      {
+        path: "/login",
+        element: <LoginForm onDone={function (): void {
+          throw new Error("Function not implemented.");
+        } } />,
       },
       {
         path: "/addModel/provider/:providerName",

@@ -15,6 +15,7 @@ import { setDialogMessage, setShowDialog } from "../redux/slices/uiSlice";
 import {
   addCodeToEdit,
   clearCodeToEdit,
+  setLoggedInUser,
   updateApplyState,
   updateCurCheckpoint,
 } from "../redux/slices/sessionSlice";
@@ -27,6 +28,7 @@ import { isNewUserOnboarding, useOnboardingCard } from "./OnboardingCard";
 import PostHogPageView from "./PosthogPageView";
 import AccountDialog from "./AccountDialog";
 import { AuthProvider } from "../context/Auth";
+import { jwtDecode } from 'jwt-decode';
 
 const LayoutTopDiv = styled(CustomScrollbarDiv)`
   height: 100%;
@@ -166,14 +168,14 @@ const Layout = () => {
     [navigate],
   );
 
-  useWebviewListener(
-    "focusEditWithoutClear",
-    async () => {
-      dispatch(focusEdit());
-      navigate("/edit");
-    },
-    [navigate],
-  );
+  // useWebviewListener(
+  //   "focusEditWithoutClear",
+  //   async () => {
+  //     dispatch(focusEdit());
+  //     navigate("/edit");
+  //   },
+  //   [navigate],
+  // );
 
   useWebviewListener(
     "addCodeToEdit",
@@ -221,12 +223,34 @@ const Layout = () => {
   }, []);
 
   useEffect(() => {
+    let validToken =  false;
+    const user: any = localStorage.getItem("loggedInUser");
+    if (user && user?.content?.accessToken) {
+      try {
+        const decodedToken = jwtDecode(user.content.accessToken);
+        const currentTime = Date.now() / 1000;
+        
+        if (decodedToken.exp > currentTime) {
+          validToken = true;
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+      }
+    }
     if (
-      isNewUserOnboarding() &&
+      (user == undefined || user == null) && !validToken &&
       (location.pathname === "/" || location.pathname === "/index.html")
     ) {
-      onboardingCard.open("Quickstart");
+      dispatch(setLoggedInUser(null));
+      navigate("/login");
     }
+    
+    // if (
+    //   isNewUserOnboarding() &&
+    //   (location.pathname === "/" || location.pathname === "/index.html")
+    // ) {
+    //   onboardingCard.open("Quickstart");
+    // }
   }, [location]);
 
   return (

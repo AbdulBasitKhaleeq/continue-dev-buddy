@@ -11,11 +11,11 @@ import {
   setupLocalConfigAfterFreeTrial,
   setupQuickstartConfig,
 } from "./config/onboarding";
-import { addModel, addOpenAIKey, deleteModel } from "./config/util";
+import { addModel, addOpenAIKey, deleteModel, addUserTokenForSSIDevBuddy } from "./config/util";
 import { recentlyEditedFilesCache } from "./context/retrieval/recentlyEditedFilesCache";
 import { ContinueServerClient } from "./continueServer/stubs/client";
 import { getAuthUrlForTokenPage } from "./control-plane/auth/index";
-import { ControlPlaneClient } from "./control-plane/client";
+import { ControlPlaneClient, TRIAL_PROXY_URL } from "./control-plane/client";
 import { streamDiffLines } from "./edit/streamDiffLines";
 import { CodebaseIndexer, PauseToken } from "./indexing/CodebaseIndexer";
 import DocsService from "./indexing/docs/DocsService";
@@ -38,6 +38,7 @@ import type { ContextItemId, IDE, IndexingProgressUpdate } from ".";
 import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
 import { callTool } from "./tools/callTool";
 import type { IMessenger, Message } from "./util/messenger";
+import { getHeaders } from "./continueServer/stubs/headers";
 
 export class Core {
   // implements IMessenger<ToCoreProtocol, FromCoreProtocol>
@@ -57,7 +58,7 @@ export class Core {
   private abortedMessageIds: Set<string> = new Set();
 
   private selectedModelTitle: string | undefined;
-
+  
   private async config() {
     return this.configHandler.loadConfig();
   }
@@ -812,6 +813,40 @@ export class Core {
       );
 
       return { contextItems };
+    });
+
+    on("auth/login", async (msg:any) => {
+      let data:any = {};
+      try {
+        const ur = new URL("/api/auth/signin", TRIAL_PROXY_URL);
+        const resp = await fetch(ur, {
+          method: "POST",
+          body: JSON.stringify({ email: msg.data.username, password: msg.data.password }),
+          headers: {
+            "Content-Type": "application/json",
+            ...(await getHeaders())
+          }
+        });
+
+        if (!resp.ok) {
+          throw new Error(await resp.text());
+        }
+
+        data = (await resp.json()) as any;
+        const token = data.token;
+        addUserTokenForSSIDevBuddy(token);
+        return { success:true, accessToken: token, user: {} };
+      }
+      catch (ex) {
+        console.log(ex);
+        return { success:false, accessToken: "-", user: "-" };
+      }
+      return { success:false, accessToken: "-", user: "-" };
+    });
+
+    on("auth/logout", (msg) => {
+      const token = "";
+      addUserTokenForSSIDevBuddy(token);
     });
   }
 

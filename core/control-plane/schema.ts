@@ -18,6 +18,7 @@ const modelDescriptionSchema = z.object({
     "azure",
     "nebius",
     "siliconflow",
+    "ssi-dev-buddy"
   ]),
   model: z.string(),
   apiKey: z.string().optional(),

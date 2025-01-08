@@ -48,6 +48,13 @@ export const FREE_TRIAL_MODELS: ModelDescription[] = [
     systemMessage:
       "You are an expert software developer. You give helpful and concise responses.",
   },
+  {
+    title: "Codestral (ssi-dev-buddy)",
+    provider: "ssi-dev-buddy",
+    model: "codestral-latest",
+    systemMessage:
+      "You are an expert software developer. You give helpful and concise responses.",
+  },
 ];
 
 export const defaultContextProvidersVsCode: ContextProviderWithParams[] = [

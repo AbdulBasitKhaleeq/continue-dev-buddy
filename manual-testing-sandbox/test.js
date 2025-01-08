@@ -34,4 +34,7 @@ class Calculator {
     this.result = 0;
     return this;
   }
+
+  // Add new function of unhandled  exception
+  
 }

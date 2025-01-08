@@ -123,7 +123,7 @@ export class VsCodeWebviewProtocol
             }
           }
 
-          if (message.includes("https://proxy-server")) {
+          if (message.includes("https://proxy-server")) { // TODO: replace with our server url
             message = message.split("\n").filter((l: string) => l !== "")[1];
             try {
               message = JSON.parse(message).message;

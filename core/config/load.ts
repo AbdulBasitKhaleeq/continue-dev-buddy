@@ -259,6 +259,7 @@ async function intermediateToFinalConfig(
 ): Promise<ContinueConfig> {
   // Auto-detect models
   let models: BaseLLM[] = [];
+  
   for (const desc of config.models) {
     if (isModelDescription(desc)) {
       const llm = await llmFromDescription(
@@ -354,7 +355,6 @@ async function intermediateToFinalConfig(
     // Remove free trial models
     models = models.filter((model) => model.providerName !== "free-trial");
   }
-
   // Tab autocomplete model
   let tabAutocompleteModels: BaseLLM[] = [];
   if (config.tabAutocompleteModel) {
