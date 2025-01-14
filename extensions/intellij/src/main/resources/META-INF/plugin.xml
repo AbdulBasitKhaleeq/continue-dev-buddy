@@ -56,7 +56,7 @@
 
     <actions>
         <action class="com.github.continuedev.continueintellijextension.editor.InlineEditAction"
-                id="continue.inlineEdit"
+                id="ssidevbuddy.inlineEdit"
                 description="Inline Edit"
                 text="Inline Edit">
             <keyboard-shortcut keymap="$default"
@@ -66,7 +66,7 @@
             <override-text place="GoToAction" text="Continue: Edit Code"/>
         </action>
 
-        <action id="continue.acceptDiff"
+        <action id="ssidevbuddy.acceptDiff"
                 class="com.github.continuedev.continueintellijextension.actions.AcceptDiffAction"
                 text="Accept Diff" description="Accept Diff">
             <keyboard-shortcut keymap="$default"
@@ -76,7 +76,7 @@
             <override-text place="GoToAction" text="Continue: Accept Diff"/>
         </action>
 
-        <action id="continue.rejectDiff"
+        <action id="ssidevbuddy.rejectDiff"
                 class="com.github.continuedev.continueintellijextension.actions.RejectDiffAction"
                 text="Reject Diff" description="Reject Diff">
             <keyboard-shortcut keymap="$default"
@@ -86,7 +86,7 @@
             <override-text place="GoToAction" text="Continue: Reject Diff"/>
         </action>
 
-        <action id="continue.acceptVerticalDiffBlock"
+        <action id="ssidevbuddy.acceptVerticalDiffBlock"
                 class="com.github.continuedev.continueintellijextension.actions.AcceptDiffAction"
                 text="Accept Diff" description="Accept Vertical Diff Block">
             <keyboard-shortcut keymap="$default"
@@ -96,7 +96,7 @@
             <override-text place="GoToAction" text="Continue: Accept Vertical Diff Block"/>
         </action>
 
-        <action id="continue.rejectVerticalDiffBlock"
+        <action id="ssidevbuddy.rejectVerticalDiffBlock"
                 class="com.github.continuedev.continueintellijextension.actions.RejectDiffAction"
                 text="Reject Diff" description="Reject Vertical Diff Block">
             <keyboard-shortcut keymap="$default"
@@ -106,7 +106,7 @@
             <override-text place="GoToAction" text="Continue: Reject Vertical Diff Block"/>
         </action>
 
-        <action id="continue.focusContinueInputWithoutClear"
+        <action id="ssidevbuddy.focusContinueInputWithoutClear"
                 class="com.github.continuedev.continueintellijextension.actions.FocusContinueInputWithoutClearAction"
                 text="Add selected code to context"
                 description="Focus Continue Input With Edit">
@@ -117,7 +117,7 @@
             <override-text place="GoToAction" text="Continue: Add Highlighted Code to Context"/>
         </action>
 
-        <action id="continue.newContinueSession"
+        <action id="ssidevbuddy.newContinueSession"
                 icon="AllIcons.General.Add"
                 class="com.github.continuedev.continueintellijextension.actions.NewContinueSessionAction"
                 text="Start New Continue Session"
@@ -126,7 +126,7 @@
             <override-text place="GoToAction" text="Continue: New Session"/>
         </action>
 
-        <action id="continue.viewHistory"
+        <action id="ssidevbuddy.viewHistory"
                 icon="AllIcons.Vcs.History"
                 class="com.github.continuedev.continueintellijextension.actions.ViewHistoryAction"
                 text="View History"
@@ -134,7 +134,7 @@
             <override-text place="GoToAction" text="Continue: View History"/>
         </action>
 
-        <action id="continue.focusContinueInput"
+        <action id="ssidevbuddy.focusContinueInput"
                 class="com.github.continuedev.continueintellijextension.actions.FocusContinueInputAction"
                 text="Add selected code to context"
                 description="Focus Continue Input">
@@ -147,8 +147,8 @@
         </action>
 
         <group id="ContinueSidebarActionsGroup">
-            <reference ref="continue.newContinueSession"/>
-            <reference ref="continue.viewHistory"/>
+            <reference ref="ssidevbuddy.newContinueSession"/>
+            <reference ref="ssidevbuddy.viewHistory"/>
         </group>
 
         <action id="com.github.continuedev.continueintellijextension.autocomplete.AcceptAutocompleteAction"

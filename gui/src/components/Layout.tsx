@@ -145,7 +145,9 @@ const Layout = () => {
   useWebviewListener(
     "openOnboardingCard",
     async () => {
-      onboardingCard.open("Best");
+      dispatch(setLoggedInUser(null));
+      navigate("/login");
+      // onboardingCard.open("Best");
     },
     [],
   );
@@ -220,31 +222,11 @@ const Layout = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
+
   }, []);
 
+
   useEffect(() => {
-    let validToken =  false;
-    const user: any = localStorage.getItem("loggedInUser");
-    if (user && user?.content?.accessToken) {
-      try {
-        const decodedToken = jwtDecode(user.content.accessToken);
-        const currentTime = Date.now() / 1000;
-        
-        if (decodedToken.exp > currentTime) {
-          validToken = true;
-        }
-      } catch (error) {
-        console.error('Error decoding token:', error);
-      }
-    }
-    if (
-      (user == undefined || user == null) && !validToken &&
-      (location.pathname === "/" || location.pathname === "/index.html")
-    ) {
-      dispatch(setLoggedInUser(null));
-      navigate("/login");
-    }
-    
     // if (
     //   isNewUserOnboarding() &&
     //   (location.pathname === "/" || location.pathname === "/index.html")

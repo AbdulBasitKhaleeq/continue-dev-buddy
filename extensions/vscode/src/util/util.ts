@@ -121,8 +121,9 @@ export function getMetaKeyName() {
 }
 
 export function getExtensionVersion(): string {
-  const extension = vscode.extensions.getExtension("continue.continue");
-  return extension?.packageJSON.version || "0.1.0";
+  const extension: any = vscode.extensions?.getExtension("continue.continue") ?? {};
+  console.log(extension);
+  return extension?.packageJSON?.version || "0.1.0";
 }
 
 export function getFullyQualifiedPath(ide: VsCodeIde, filepath: string) {

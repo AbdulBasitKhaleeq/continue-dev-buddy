@@ -194,7 +194,7 @@ Continue 暴露一个 API ，从第三方 VSCode 扩展注册上下文提供者�
 
 ```json
 {
-  "extensionDependencies": ["continue.continue"]
+  "extensionDependencies": ["ssidevbuddy.ssidevbuddy"]
 }
 ```
 

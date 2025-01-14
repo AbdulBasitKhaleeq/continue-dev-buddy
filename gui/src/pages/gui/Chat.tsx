@@ -214,7 +214,7 @@ export function Chat() {
             posthog?.capture("ftc_reached");
             ideMessenger.ide.showToast(
               "info",
-              "You've reached the free trial limit. Please configure a model to continue.",
+              "You've reached the free trial limit. Please configure a model to ssidevbuddy.",
             );
             return;
           }

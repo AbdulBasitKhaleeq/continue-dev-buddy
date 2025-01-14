@@ -30,18 +30,13 @@ class SSIDevBuddyContextProvider extends BaseContextProvider {
     query: string,
     extras: ContextProviderExtras,
   ): Promise<ContextItem[]> {
-    // TODO: replace with ssi buddy context api end point
-    
     const body = {
       query: query || "",
       fullInput: extras.fullInput,
       options: this.options.options,
     };
-
-    console.log(body);
     
-    //const response = await extras.fetch(new URL("auth/signin", TRIAL_PROXY_URL), {
-    const response = await extras.fetch(new URL("/context_api", "http://127.0.0.1:8000"), {
+    const response = await extras.fetch(new URL("/api/vscode/context_api", TRIAL_PROXY_URL), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

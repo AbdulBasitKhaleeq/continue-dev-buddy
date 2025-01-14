@@ -287,7 +287,7 @@ class VsCodeIde implements IDE {
   }
 
   async getClipboardContent() {
-    return this.context.workspaceState.get("continue.copyBuffer", {
+    return this.context.workspaceState.get("ssidevbuddy.copyBuffer", {
       text: "",
       copiedAt: new Date("1900-01-01").toISOString(),
     });

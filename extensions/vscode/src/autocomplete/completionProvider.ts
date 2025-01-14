@@ -254,7 +254,7 @@ export class ContinueCompletionProvider
         completionRange,
         {
           title: "Log Autocomplete Outcome",
-          command: "continue.logAutocompleteOutcome",
+          command: "ssidevbuddy.logAutocompleteOutcome",
           arguments: [input.completionId, this.completionProvider],
         },
       );

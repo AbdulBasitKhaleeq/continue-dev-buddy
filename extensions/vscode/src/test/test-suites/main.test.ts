@@ -17,7 +17,7 @@ describe("Extension Test Suite", () => {
       vscode.extensions.getExtension("continue.continue");
     const extension: VsCodeExtension = continueExtensionApi?.exports.extension;
     await new Promise((resolve) => setTimeout(resolve, 400));
-    await vscode.commands.executeCommand("continue.focusContinueInput");
+    await vscode.commands.executeCommand("ssidevbuddy.focusContinueInput");
     await new Promise((resolve) => setTimeout(resolve, 400));
     const title = await (
       await extension.webviewProtocolPromise

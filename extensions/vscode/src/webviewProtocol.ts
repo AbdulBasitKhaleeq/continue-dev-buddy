@@ -123,7 +123,7 @@ export class VsCodeWebviewProtocol
             }
           }
 
-          if (message.includes("https://proxy-server")) { // TODO: replace with our server url
+          if (message.includes("https://apissidev")) {
             message = message.split("\n").filter((l: string) => l !== "")[1];
             try {
               message = JSON.parse(message).message;
@@ -133,15 +133,16 @@ export class VsCodeWebviewProtocol
                 " To keep using Continue, you can set up a local model or use your own API key.";
             }
 
-            vscode.window
-              .showInformationMessage(message, "Add API Key", "Use Local Model")
-              .then((selection) => {
-                if (selection === "Add API Key") {
-                  this.request("addApiKey", undefined);
-                } else if (selection === "Use Local Model") {
-                  this.request("setupLocalConfig", undefined);
-                }
-              });
+            this.request("openOnboardingCard", undefined);
+            // vscode.window
+            //   .showInformationMessage(message, "Add API Key", "Use Local Model")
+            //   .then((selection) => {
+            //     if (selection === "Add API Key") {
+            //       this.request("addApiKey", undefined);
+            //     } else if (selection === "Use Local Model") {
+            //       this.request("setupLocalConfig", undefined);
+            //     }
+            //   });
           } else if (message.includes("Please sign in with GitHub")) {
             showFreeTrialLoginMessage(message, this.reloadConfig, () =>
               this.request("openOnboardingCard", undefined),

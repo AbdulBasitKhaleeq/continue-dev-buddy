@@ -121,7 +121,7 @@ export class VsCodeMessenger {
     });
     this.onWebview("toggleDevTools", (msg) => {
       vscode.commands.executeCommand("workbench.action.toggleDevTools");
-      vscode.commands.executeCommand("continue.viewLogs");
+      vscode.commands.executeCommand("ssidevbuddy.viewLogs");
     });
     this.onWebview("reloadWindow", (msg) => {
       vscode.commands.executeCommand("workbench.action.reloadWindow");
@@ -130,7 +130,7 @@ export class VsCodeMessenger {
       vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
     });
     this.onWebview("toggleFullScreen", (msg) => {
-      vscode.commands.executeCommand("continue.toggleFullScreen");
+      vscode.commands.executeCommand("ssidevbuddy.toggleFullScreen");
     });
     // History
     this.onWebview("saveFile", async (msg) => {
@@ -151,7 +151,7 @@ export class VsCodeMessenger {
       "acceptDiff",
       async ({ data: { filepath, streamId } }) => {
         await vscode.commands.executeCommand(
-          "continue.acceptDiff",
+          "ssidevbuddy.acceptDiff",
           filepath,
           streamId,
         );
@@ -162,7 +162,7 @@ export class VsCodeMessenger {
       "rejectDiff",
       async ({ data: { filepath, streamId } }) => {
         await vscode.commands.executeCommand(
-          "continue.rejectDiff",
+          "ssidevbuddy.rejectDiff",
           filepath,
           streamId,
         );
@@ -381,23 +381,23 @@ export class VsCodeMessenger {
       if (accept && onlyFirst) {
         // Accept first
         vscode.commands.executeCommand(
-          "continue.acceptVerticalDiffBlock",
+          "ssidevbuddy.acceptVerticalDiffBlock",
           filepath,
           0,
         );
       } else if (accept) {
-        vscode.commands.executeCommand("continue.acceptDiff", filepath);
+        vscode.commands.executeCommand("ssidevbuddy.acceptDiff", filepath);
         // Accept all
       } else if (onlyFirst) {
         // Reject first
         vscode.commands.executeCommand(
-          "continue.rejectVerticalDiffBlock",
+          "ssidevbuddy.rejectVerticalDiffBlock",
           filepath,
           0,
         );
       } else {
         // Reject all
-        vscode.commands.executeCommand("continue.rejectDiff", filepath);
+        vscode.commands.executeCommand("ssidevbuddy.rejectDiff", filepath);
       }
     });
     this.onWebview("edit/escape", async (msg) => {
@@ -510,7 +510,7 @@ export class VsCodeMessenger {
       );
       vscode.commands.executeCommand(
         "setContext",
-        "continue.isSignedInToControlPlane",
+        "ssidevbuddy.isSignedInToControlPlane",
         false,
       );
     });

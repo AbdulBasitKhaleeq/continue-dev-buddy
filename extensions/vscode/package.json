@@ -1,7 +1,7 @@
 {
-  "name": "continue",
+  "name": "ssidevbuddy",
   "icon": "media/icon.png",
-  "author": "Continue Dev, Inc",
+  "author": "Strategic Systems International",
   "version": "0.9.243",
   "repository": {
     "type": "git",
@@ -15,13 +15,13 @@
     "url": "https://github.com/continuedev/continue/issues",
     "email": "nate@continue.dev"
   },
-  "homepage": "https://continue.dev",
+  "homepage": "https://www.ssidecisions.com",
   "qna": "https://github.com/continuedev/continue/issues/new/choose",
   "license": "Apache-2.0",
-  "displayName": "Continue - Codestral, Claude, and more",
+  "displayName": "SSI Dev Buddy",
   "pricing": "Free",
-  "description": "The leading open-source AI code assistant",
-  "publisher": "Continue",
+  "description": "Wrapper over The leading open-source AI code assistant SSIDevBuddy.dev",
+  "publisher": "StrategicSystemsInternational",
   "engines": {
     "vscode": "^1.70.0",
     "node": ">=20.11.0"
@@ -53,14 +53,14 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onView:continueGUIView"
+    "onView:ssidevbuddyGUIView"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "authentication": [
       {
-        "id": "continue",
-        "label": "Continue"
+        "id": "ssidevbuddy",
+        "label": "ssidevbuddy"
       }
     ],
     "languages": [
@@ -90,59 +90,59 @@
       }
     ],
     "configuration": {
-      "title": "Continue",
+      "title": "ssidevbuddy",
       "properties": {
-        "continue.telemetryEnabled": {
+        "ssidevbuddy.telemetryEnabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "markdownDescription": "Continue collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [continue.dev › Telemetry](https://docs.continue.dev/telemetry)."
         },
-        "continue.enableContinueForTeams": {
+        "ssidevbuddy.enableContinueForTeams": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable Continue for teams beta features. To sign in, click the person icon in the bottom right of the sidebar."
         },
-        "continue.showInlineTip": {
+        "ssidevbuddy.showInlineTip": {
           "type": "boolean",
           "default": true,
           "description": "Show inline suggestion to use the Continue keyboard shortcuts (e.g. \"Cmd/Ctrl L to select code, Cmd/Ctrl I to edit\")."
         },
-        "continue.enableQuickActions": {
+        "ssidevbuddy.enableQuickActions": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable the experimental Quick Actions feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Quick Actions (experimental)](https://docs.continue.dev/features/quick-actions)"
         },
-        "continue.enableTabAutocomplete": {
+        "ssidevbuddy.enableTabAutocomplete": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Enable Continue's tab autocomplete feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Tab Autocomplete (beta)](https://docs.continue.dev/features/tab-autocomplete)"
         },
-        "continue.pauseTabAutocompleteOnBattery": {
+        "ssidevbuddy.pauseTabAutocompleteOnBattery": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's tab autocomplete feature when your battery is low."
         },
-        "continue.pauseCodebaseIndexOnStart": {
+        "ssidevbuddy.pauseCodebaseIndexOnStart": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's codebase index on start."
         },
-        "continue.enableDebugLogs": {
+        "ssidevbuddy.enableDebugLogs": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable Continue Debug Logs in the Output panel."
         },
-        "continue.remoteConfigServerUrl": {
+        "ssidevbuddy.remoteConfigServerUrl": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter the server URL here and your user token below to enable automatic syncing."
         },
-        "continue.userToken": {
+        "ssidevbuddy.userToken": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter your user token here and your server URL above to enable automatic syncing."
         },
-        "continue.remoteConfigSyncPeriod": {
+        "ssidevbuddy.remoteConfigSyncPeriod": {
           "type": "number",
           "default": 60,
           "description": "The period of time in minutes between automatic syncs."
@@ -151,413 +151,413 @@
     },
     "commands": [
       {
-        "command": "continue.applyCodeFromChat",
-        "category": "Continue",
+        "command": "ssidevbuddy.applyCodeFromChat",
+        "category": "ssidevbuddy",
         "title": "Apply code from chat",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.acceptDiff",
-        "category": "Continue",
+        "command": "ssidevbuddy.acceptDiff",
+        "category": "ssidevbuddy",
         "title": "Accept Diff",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.rejectDiff",
-        "category": "Continue",
+        "command": "ssidevbuddy.rejectDiff",
+        "category": "ssidevbuddy",
         "title": "Reject Diff",
-        "group": "Continue",
+        "group": "ssidevbuddy",
         "icon": "$(stop)"
       },
       {
-        "command": "continue.acceptVerticalDiffBlock",
-        "category": "Continue",
+        "command": "ssidevbuddy.acceptVerticalDiffBlock",
+        "category": "ssidevbuddy",
         "title": "Accept Vertical Diff Block",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.rejectVerticalDiffBlock",
-        "category": "Continue",
+        "command": "ssidevbuddy.rejectVerticalDiffBlock",
+        "category": "ssidevbuddy",
         "title": "Reject Vertical Diff Block",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.focusEdit",
-        "category": "Continue",
+        "command": "ssidevbuddy.focusEdit",
+        "category": "ssidevbuddy",
         "title": "Generate Code",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.focusContinueInput",
-        "category": "Continue",
+        "command": "ssidevbuddy.focusContinueInput",
+        "category": "ssidevbuddy",
         "title": "Add Highlighted Code to Context and Clear Chat",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.focusContinueInputWithoutClear",
-        "category": "Continue",
+        "command": "ssidevbuddy.focusContinueInputWithoutClear",
+        "category": "ssidevbuddy",
         "title": "Add Highlighted Code to Context",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.debugTerminal",
-        "category": "Continue",
+        "command": "ssidevbuddy.debugTerminal",
+        "category": "ssidevbuddy",
         "title": "Debug Terminal",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.exitEditMode",
-        "category": "Continue",
+        "command": "ssidevbuddy.exitEditMode",
+        "category": "ssidevbuddy",
         "title": "Exit Edit Mode",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.toggleFullScreen",
-        "category": "Continue",
+        "command": "ssidevbuddy.toggleFullScreen",
+        "category": "ssidevbuddy",
         "title": "Toggle Full Screen",
         "icon": "$(fullscreen)",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.openConfig",
-        "category": "Continue",
+        "command": "ssidevbuddy.openConfig",
+        "category": "ssidevbuddy",
         "title": "Open Continue Config",
         "icon": "$(gear)",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.toggleTabAutocompleteEnabled",
-        "category": "Continue",
+        "command": "ssidevbuddy.toggleTabAutocompleteEnabled",
+        "category": "ssidevbuddy",
         "title": "Toggle Autocomplete Enabled",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.selectFilesAsContext",
-        "category": "Continue",
+        "command": "ssidevbuddy.selectFilesAsContext",
+        "category": "ssidevbuddy",
         "title": "Select Files as Context",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.newSession",
-        "category": "Continue",
+        "command": "ssidevbuddy.newSession",
+        "category": "ssidevbuddy",
         "title": "New Session",
         "icon": "$(add)",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.viewHistory",
-        "category": "Continue",
+        "command": "ssidevbuddy.viewHistory",
+        "category": "ssidevbuddy",
         "title": "View History",
         "icon": "$(history)",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.viewLogs",
-        "category": "Continue",
+        "command": "ssidevbuddy.viewLogs",
+        "category": "ssidevbuddy",
         "title": "View History",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.navigateTo",
-        "category": "Continue",
+        "command": "ssidevbuddy.navigateTo",
+        "category": "ssidevbuddy",
         "title": "Navigate to a path",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.openMorePage",
-        "category": "Continue",
+        "command": "ssidevbuddy.openMorePage",
+        "category": "ssidevbuddy",
         "title": "More",
         "icon": "$(ellipsis)",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.writeCommentsForCode",
-        "category": "Continue",
+        "command": "ssidevbuddy.writeCommentsForCode",
+        "category": "ssidevbuddy",
         "title": "Write Comments for this Code",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.writeDocstringForCode",
-        "category": "Continue",
+        "command": "ssidevbuddy.writeDocstringForCode",
+        "category": "ssidevbuddy",
         "title": "Write a Docstring for this Code",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.fixCode",
-        "category": "Continue",
+        "command": "ssidevbuddy.fixCode",
+        "category": "ssidevbuddy",
         "title": "Fix this Code",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.optimizeCode",
-        "category": "Continue",
+        "command": "ssidevbuddy.optimizeCode",
+        "category": "ssidevbuddy",
         "title": "Optimize this Code",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.fixGrammar",
-        "category": "Continue",
+        "command": "ssidevbuddy.fixGrammar",
+        "category": "ssidevbuddy",
         "title": "Fix Grammar / Spelling",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.codebaseForceReIndex",
-        "category": "Continue",
+        "command": "ssidevbuddy.codebaseForceReIndex",
+        "category": "ssidevbuddy",
         "title": "Codebase Force Re-Index",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.rebuildCodebaseIndex",
-        "category": "Continue",
+        "command": "ssidevbuddy.rebuildCodebaseIndex",
+        "category": "ssidevbuddy",
         "title": "Rebuild codebase index",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.docsIndex",
-        "category": "Continue",
+        "command": "ssidevbuddy.docsIndex",
+        "category": "ssidevbuddy",
         "title": "Docs Index",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.docsReIndex",
-        "category": "Continue",
+        "command": "ssidevbuddy.docsReIndex",
+        "category": "ssidevbuddy",
         "title": "Docs Force Re-Index",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.focusContinueSessionId",
-        "category": "Continue",
+        "command": "ssidevbuddy.focusContinueSessionId",
+        "category": "ssidevbuddy",
         "title": "Focus Continue Chat",
-        "group": "Continue"
+        "group": "ssidevbuddy"
       },
       {
-        "command": "continue.signInToControlPlane",
+        "command": "ssidevbuddy.signInToControlPlane",
         "title": "Sign In",
-        "category": "Continue",
-        "group": "Continue",
+        "category": "ssidevbuddy",
+        "group": "ssidevbuddy",
         "icon": "$(account)"
       },
       {
-        "command": "continue.openAccountDialog",
+        "command": "ssidevbuddy.openAccountDialog",
         "title": "Account",
-        "category": "Continue",
-        "group": "Continue",
+        "category": "ssidevbuddy",
+        "group": "ssidevbuddy",
         "icon": "$(account)"
       }
     ],
     "keybindings": [
       {
-        "command": "continue.focusContinueInput",
+        "command": "ssidevbuddy.focusContinueInput",
         "mac": "cmd+l",
         "key": "ctrl+l"
       },
       {
-        "command": "continue.focusContinueInputWithoutClear",
+        "command": "ssidevbuddy.focusContinueInputWithoutClear",
         "mac": "cmd+shift+l",
         "key": "ctrl+shift+l"
       },
       {
-        "command": "continue.acceptDiff",
+        "command": "ssidevbuddy.acceptDiff",
         "mac": "shift+cmd+enter",
         "key": "shift+ctrl+enter",
-        "when": "continue.diffVisible"
+        "when": "ssidevbuddy.diffVisible"
       },
       {
-        "command": "continue.rejectDiff",
+        "command": "ssidevbuddy.rejectDiff",
         "mac": "shift+cmd+backspace",
         "key": "shift+ctrl+backspace",
-        "when": "continue.diffVisible"
+        "when": "ssidevbuddy.diffVisible"
       },
       {
-        "command": "continue.rejectDiff",
+        "command": "ssidevbuddy.rejectDiff",
         "mac": "cmd+z",
         "key": "ctrl+z",
-        "when": "continue.diffVisible"
+        "when": "ssidevbuddy.diffVisible"
       },
       {
-        "command": "continue.quickEditHistoryUp",
+        "command": "ssidevbuddy.quickEditHistoryUp",
         "mac": "up",
         "key": "up",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && ssidevbuddy.quickEditHistoryFocused"
       },
       {
-        "command": "continue.quickEditHistoryDown",
+        "command": "ssidevbuddy.quickEditHistoryDown",
         "mac": "down",
         "key": "down",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && ssidevbuddy.quickEditHistoryFocused"
       },
       {
-        "command": "continue.acceptVerticalDiffBlock",
+        "command": "ssidevbuddy.acceptVerticalDiffBlock",
         "mac": "alt+cmd+y",
         "key": "alt+ctrl+y"
       },
       {
-        "command": "continue.rejectVerticalDiffBlock",
+        "command": "ssidevbuddy.rejectVerticalDiffBlock",
         "mac": "alt+cmd+n",
         "key": "alt+ctrl+n"
       },
       {
-        "command": "continue.focusEdit",
+        "command": "ssidevbuddy.focusEdit",
         "title": "Edit code with natural language",
         "mac": "cmd+i",
         "key": "ctrl+i"
       },
       {
-        "command": "continue.exitEditMode",
+        "command": "ssidevbuddy.exitEditMode",
         "mac": "escape",
         "key": "escape",
-        "when": "continue.inEditMode && editorFocus"
+        "when": "ssidevbuddy.inEditMode && editorFocus"
       },
       {
-        "command": "continue.debugTerminal",
+        "command": "ssidevbuddy.debugTerminal",
         "mac": "cmd+shift+r",
         "key": "ctrl+shift+r"
       },
       {
-        "command": "continue.toggleFullScreen",
+        "command": "ssidevbuddy.toggleFullScreen",
         "mac": "cmd+k cmd+m",
         "key": "ctrl+k ctrl+m",
         "when": "!terminalFocus"
       },
       {
-        "command": "continue.toggleTabAutocompleteEnabled",
+        "command": "ssidevbuddy.toggleTabAutocompleteEnabled",
         "mac": "cmd+k cmd+a",
         "key": "ctrl+k ctrl+a",
         "when": "!terminalFocus"
       },
       {
-        "command": "continue.applyCodeFromChat",
+        "command": "ssidevbuddy.applyCodeFromChat",
         "mac": "alt+a",
         "key": "alt+a"
       }
     ],
     "submenus": [
       {
-        "id": "continue.continueSubMenu",
-        "label": "Continue"
+        "id": "ssidevbuddy.ssidevbuddySubMenu",
+        "label": "ssidevbuddy"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "continue.focusContinueInput"
+          "command": "ssidevbuddy.focusContinueInput"
         },
         {
-          "command": "continue.focusContinueInputWithoutClear"
+          "command": "ssidevbuddy.focusContinueInputWithoutClear"
         },
         {
-          "command": "continue.debugTerminal"
+          "command": "ssidevbuddy.debugTerminal"
         },
         {
-          "command": "continue.toggleFullScreen"
+          "command": "ssidevbuddy.toggleFullScreen"
         },
         {
-          "command": "continue.newSession"
+          "command": "ssidevbuddy.newSession"
         }
       ],
       "editor/context": [
         {
-          "submenu": "continue.continueSubMenu",
-          "group": "0_acontinue"
+          "submenu": "ssidevbuddy.ssidevbuddySubMenu",
+          "group": "0_assidevbuddy"
         }
       ],
       "editor/title/run": [
         {
-          "command": "continue.rejectDiff",
-          "group": "Continue",
-          "when": "continue.streamingDiff"
+          "command": "ssidevbuddy.rejectDiff",
+          "group": "ssidevbuddy",
+          "when": "ssidevbuddy.streamingDiff"
         }
       ],
-      "continue.continueSubMenu": [
+      "ssidevbuddy.ssidevbuddySubMenu": [
         {
-          "command": "continue.focusContinueInputWithoutClear",
-          "group": "Continue",
+          "command": "ssidevbuddy.focusContinueInputWithoutClear",
+          "group": "ssidevbuddy",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.writeCommentsForCode",
-          "group": "Continue",
+          "command": "ssidevbuddy.writeCommentsForCode",
+          "group": "ssidevbuddy",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.writeDocstringForCode",
-          "group": "Continue",
+          "command": "ssidevbuddy.writeDocstringForCode",
+          "group": "ssidevbuddy",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.fixCode",
-          "group": "Continue",
+          "command": "ssidevbuddy.fixCode",
+          "group": "ssidevbuddy",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.optimizeCode",
-          "group": "Continue",
+          "command": "ssidevbuddy.optimizeCode",
+          "group": "ssidevbuddy",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.fixGrammar",
-          "group": "Continue",
+          "command": "ssidevbuddy.fixGrammar",
+          "group": "ssidevbuddy",
           "when": "editorHasSelection && editorLangId == 'markdown'"
         }
       ],
       "explorer/context": [
         {
-          "command": "continue.selectFilesAsContext",
+          "command": "ssidevbuddy.selectFilesAsContext",
           "group": "1_debug@1"
         }
       ],
       "view/title": [
         {
-          "command": "continue.newSession",
+          "command": "ssidevbuddy.newSession",
           "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "when": "view == ssidevbuddy.ssidevbuddyGUIView"
         },
         {
-          "command": "continue.viewHistory",
+          "command": "ssidevbuddy.viewHistory",
           "group": "navigation@2",
-          "when": "view == continue.continueGUIView"
+          "when": "view == ssidevbuddy.ssidevbuddyGUIView"
         },
         {
-          "command": "continue.toggleFullScreen",
+          "command": "ssidevbuddy.toggleFullScreen",
           "group": "navigation@3",
-          "when": "view == continue.continueGUIView"
+          "when": "view == ssidevbuddy.ssidevbuddyGUIView"
         },
         {
-          "command": "continue.openConfig",
+          "command": "ssidevbuddy.openConfig",
           "group": "navigation@4",
-          "when": "view == continue.continueGUIView"
+          "when": "view == ssidevbuddy.ssidevbuddyGUIView"
         },
         {
-          "command": "continue.signInToControlPlane",
+          "command": "ssidevbuddy.signInToControlPlane",
           "group": "navigation@5",
-          "when": "(view == continue.continueGUIView) && config.continue.enableContinueForTeams && !continue.isSignedInToControlPlane"
+          "when": "(view == ssidevbuddy.ssidevbuddyGUIView) && config.ssidevbuddy.enableContinueForTeams && !ssidevbuddy.isSignedInToControlPlane"
         },
         {
-          "command": "continue.openAccountDialog",
+          "command": "ssidevbuddy.openAccountDialog",
           "group": "navigation@5",
-          "when": "(view == continue.continueGUIView) && config.continue.enableContinueForTeams && continue.isSignedInToControlPlane"
+          "when": "(view == ssidevbuddy.ssidevbuddyGUIView) && config.ssidevbuddy.enableContinueForTeams && ssidevbuddy.isSignedInToControlPlane"
         },
         {
-          "command": "continue.openMorePage",
+          "command": "ssidevbuddy.openMorePage",
           "group": "navigation@6",
-          "when": "view == continue.continueGUIView"
+          "when": "view == ssidevbuddy.ssidevbuddyGUIView"
         }
       ],
       "editor/title": [
         {
-          "command": "continue.newSession",
+          "command": "ssidevbuddy.newSession",
           "group": "navigation@1",
-          "when": "activeWebviewPanelId == continue.continueGUIView"
+          "when": "activeWebviewPanelId == ssidevbuddy.ssidevbuddyGUIView"
         },
         {
-          "command": "continue.viewHistory",
+          "command": "ssidevbuddy.viewHistory",
           "group": "navigation@2",
-          "when": "activeWebviewPanelId == continue.continueGUIView"
+          "when": "activeWebviewPanelId == ssidevbuddy.ssidevbuddyGUIView"
         }
       ],
       "terminal/context": [
         {
-          "command": "continue.debugTerminal",
+          "command": "ssidevbuddy.debugTerminal",
           "group": "navigation@top"
         }
       ]
@@ -565,17 +565,17 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "continue",
-          "title": "Continue",
+          "id": "ssidevbuddy",
+          "title": "ssidevbuddy",
           "icon": "media/sidebar-icon.png"
         }
       ]
     },
     "views": {
-      "continue": [
+      "ssidevbuddy": [
         {
           "type": "webview",
-          "id": "continue.continueGUIView",
+          "id": "ssidevbuddy.ssidevbuddyGUIView",
           "name": "",
           "visibility": "visible"
         }

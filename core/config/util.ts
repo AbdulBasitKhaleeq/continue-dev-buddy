@@ -5,6 +5,7 @@ import {
   ModelDescription,
   ModelRoles,
 } from "../";
+import { TRIAL_PROXY_URL } from "../control-plane/client";
 import { editConfigJson } from "../util/paths";
 
 function stringify(obj: any, indentation?: number): string {
@@ -75,6 +76,20 @@ export function addOpenAIKey(key: string) {
 
 export function addUserTokenForSSIDevBuddy(userToken: string) {
   editConfigJson((config) => {
+    if (config.contextProviders) {
+      config.contextProviders = [
+        ...config.contextProviders, 
+          {
+            "name": "ssi-dev-buddy-context",
+            "params": {
+              "url": `${TRIAL_PROXY_URL}/api/vscode/context_api`,
+              "options": {
+                "apiKey" : userToken
+              }
+            }
+          }
+      ];
+    }
     config.models = config.models
       .filter(
         (model) =>

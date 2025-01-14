@@ -43,7 +43,7 @@ let fullScreenPanel: vscode.WebviewPanel | undefined;
 function getFullScreenTab() {
   const tabs = vscode.window.tabGroups.all.flatMap((tabGroup) => tabGroup.tabs);
   return tabs.find((tab) =>
-    (tab.input as any)?.viewType?.endsWith("continue.continueGUIView"),
+    (tab.input as any)?.viewType?.endsWith("ssidevbuddy.ssidevbuddyGUIView"),
   );
 }
 
@@ -209,7 +209,7 @@ function focusGUI() {
     fullScreenPanel?.reveal();
   } else {
     // focus sidebar
-    vscode.commands.executeCommand("continue.continueGUIView.focus");
+    vscode.commands.executeCommand("ssidevbuddy.ssidevbuddyGUIView.focus");
     // vscode.commands.executeCommand("workbench.action.focusAuxiliaryBar");
   }
 }
@@ -351,7 +351,7 @@ const getCommandsMap: (
     );
   }
   return {
-    "continue.acceptDiff": async (
+    "ssidevbuddy.acceptDiff": async (
       newFilepath?: string | vscode.Uri,
       streamId?: string,
     ) =>
@@ -365,7 +365,7 @@ const getCommandsMap: (
         streamId,
       ),
 
-    "continue.rejectDiff": async (
+    "ssidevbuddy.rejectDiff": async (
       newFilepath?: string | vscode.Uri,
       streamId?: string,
     ) =>
@@ -378,15 +378,15 @@ const getCommandsMap: (
         newFilepath,
         streamId,
       ),
-    "continue.acceptVerticalDiffBlock": (filepath?: string, index?: number) => {
+    "ssidevbuddy.acceptVerticalDiffBlock": (filepath?: string, index?: number) => {
       captureCommandTelemetry("acceptVerticalDiffBlock");
       verticalDiffManager.acceptRejectVerticalDiffBlock(true, filepath, index);
     },
-    "continue.rejectVerticalDiffBlock": (filepath?: string, index?: number) => {
+    "ssidevbuddy.rejectVerticalDiffBlock": (filepath?: string, index?: number) => {
       captureCommandTelemetry("rejectVerticalDiffBlock");
       verticalDiffManager.acceptRejectVerticalDiffBlock(false, filepath, index);
     },
-    "continue.quickFix": async (
+    "ssidevbuddy.quickFix": async (
       range: vscode.Range,
       diagnosticMessage: string,
     ) => {
@@ -396,14 +396,14 @@ const getCommandsMap: (
 
       addCodeToContextFromRange(range, sidebar.webviewProtocol, prompt);
 
-      vscode.commands.executeCommand("continue.continueGUIView.focus");
+      vscode.commands.executeCommand("ssidevbuddy.ssidevbuddyGUIView.focus");
     },
     // Passthrough for telemetry purposes
-    "continue.defaultQuickAction": async (args: QuickEditShowParams) => {
+    "ssidevbuddy.defaultQuickAction": async (args: QuickEditShowParams) => {
       captureCommandTelemetry("defaultQuickAction");
-      vscode.commands.executeCommand("continue.focusEdit", args);
+      vscode.commands.executeCommand("ssidevbuddy.focusEdit", args);
     },
-    "continue.customQuickActionSendToChat": async (
+    "ssidevbuddy.customQuickActionSendToChat": async (
       prompt: string,
       range: vscode.Range,
     ) => {
@@ -411,9 +411,9 @@ const getCommandsMap: (
 
       addCodeToContextFromRange(range, sidebar.webviewProtocol, prompt);
 
-      vscode.commands.executeCommand("continue.continueGUIView.focus");
+      vscode.commands.executeCommand("ssidevbuddy.ssidevbuddyGUIView.focus");
     },
-    "continue.customQuickActionStreamInlineEdit": async (
+    "ssidevbuddy.customQuickActionStreamInlineEdit": async (
       prompt: string,
       range: vscode.Range,
     ) => {
@@ -421,19 +421,19 @@ const getCommandsMap: (
 
       streamInlineEdit("docstring", prompt, false, range);
     },
-    "continue.codebaseForceReIndex": async () => {
+    "ssidevbuddy.codebaseForceReIndex": async () => {
       core.invoke("index/forceReIndex", undefined);
     },
-    "continue.rebuildCodebaseIndex": async () => {
+    "ssidevbuddy.rebuildCodebaseIndex": async () => {
       core.invoke("index/forceReIndex", { shouldClearIndexes: true });
     },
-    "continue.docsIndex": async () => {
+    "ssidevbuddy.docsIndex": async () => {
       core.invoke("context/indexDocs", { reIndex: false });
     },
-    "continue.docsReIndex": async () => {
+    "ssidevbuddy.docsReIndex": async () => {
       core.invoke("context/indexDocs", { reIndex: true });
     },
-    "continue.focusContinueInput": async () => {
+    "ssidevbuddy.focusContinueInput": async () => {
       // This is a temporary fix—sidebar.webviewProtocol.request is blocking
       // when the GUI hasn't yet been setup and we should instead be
       // immediately throwing an error, or returning a Result object
@@ -466,7 +466,7 @@ const getCommandsMap: (
         void addHighlightedCodeToContext(sidebar.webviewProtocol);
       }
     },
-    "continue.focusContinueInputWithoutClear": async () => {
+    "ssidevbuddy.focusContinueInputWithoutClear": async () => {
       // This is a temporary fix—sidebar.webviewProtocol.request is blocking
       // when the GUI hasn't yet been setup and we should instead be
       // immediately throwing an error, or returning a Result object
@@ -495,7 +495,7 @@ const getCommandsMap: (
     },
     // QuickEditShowParams are passed from CodeLens, temp fix
     // until we update to new params specific to Edit
-    "continue.focusEdit": async (args?: QuickEditShowParams) => {
+    "ssidevbuddy.focusEdit": async (args?: QuickEditShowParams) => {
       captureCommandTelemetry("focusEdit");
       focusGUI();
 
@@ -538,7 +538,7 @@ const getCommandsMap: (
         );
       }
     },
-    // "continue.focusEditWithoutClear": async () => {
+    // "ssidevbuddy.focusEditWithoutClear": async () => {
     //   captureCommandTelemetry("focusEditWithoutClear");
     //   focusGUI();
 
@@ -579,11 +579,11 @@ const getCommandsMap: (
     //     });
     //   }
     // },
-    "continue.exitEditMode": async () => {
+    "ssidevbuddy.exitEditMode": async () => {
       captureCommandTelemetry("exitEditMode");
       await sidebar.webviewProtocol?.request("exitEditMode", undefined);
     },
-    // "continue.quickEdit": async (args: QuickEditShowParams) => {
+    // "ssidevbuddy.quickEdit": async (args: QuickEditShowParams) => {
     //   let linesOfCode = undefined;
     //   if (args.range) {
     //     linesOfCode = args.range.end.line - args.range.start.line;
@@ -593,7 +593,7 @@ const getCommandsMap: (
     //   });
     //   quickEdit.show(args);
     // },
-    "continue.writeCommentsForCode": async () => {
+    "ssidevbuddy.writeCommentsForCode": async () => {
       captureCommandTelemetry("writeCommentsForCode");
 
       streamInlineEdit(
@@ -601,7 +601,7 @@ const getCommandsMap: (
         "Write comments for this code. Do not change anything about the code itself.",
       );
     },
-    "continue.writeDocstringForCode": async () => {
+    "ssidevbuddy.writeDocstringForCode": async () => {
       captureCommandTelemetry("writeDocstringForCode");
 
       streamInlineEdit(
@@ -610,7 +610,7 @@ const getCommandsMap: (
         true,
       );
     },
-    "continue.fixCode": async () => {
+    "ssidevbuddy.fixCode": async () => {
       captureCommandTelemetry("fixCode");
 
       streamInlineEdit(
@@ -618,22 +618,22 @@ const getCommandsMap: (
         "Fix this code. If it is already 100% correct, simply rewrite the code.",
       );
     },
-    "continue.optimizeCode": async () => {
+    "ssidevbuddy.optimizeCode": async () => {
       captureCommandTelemetry("optimizeCode");
       streamInlineEdit("optimize", "Optimize this code");
     },
-    "continue.fixGrammar": async () => {
+    "ssidevbuddy.fixGrammar": async () => {
       captureCommandTelemetry("fixGrammar");
       streamInlineEdit(
         "fixGrammar",
         "If there are any grammar or spelling mistakes in this writing, fix them. Do not make other large changes to the writing.",
       );
     },
-    "continue.viewLogs": async () => {
+    "ssidevbuddy.viewLogs": async () => {
       captureCommandTelemetry("viewLogs");
 
       // Open ~/.continue/continue.log
-      const logFile = path.join(os.homedir(), ".continue", "continue.log");
+      const logFile = path.join(os.homedir(), ".continue", "ssidevbuddy.log");
       // Make sure the file/directory exist
       if (!fs.existsSync(logFile)) {
         fs.mkdirSync(path.dirname(logFile), { recursive: true });
@@ -643,36 +643,36 @@ const getCommandsMap: (
       const uri = vscode.Uri.file(logFile);
       await vscode.window.showTextDocument(uri);
     },
-    "continue.debugTerminal": async () => {
+    "ssidevbuddy.debugTerminal": async () => {
       captureCommandTelemetry("debugTerminal");
 
       const terminalContents = await ide.getTerminalContents();
 
-      vscode.commands.executeCommand("continue.continueGUIView.focus");
+      vscode.commands.executeCommand("ssidevbuddy.ssidevbuddyGUIView.focus");
 
       sidebar.webviewProtocol?.request("userInput", {
         input: `I got the following error, can you please help explain how to fix it?\n\n${terminalContents.trim()}`,
       });
     },
-    "continue.hideInlineTip": () => {
+    "ssidevbuddy.hideInlineTip": () => {
       vscode.workspace
         .getConfiguration(EXTENSION_NAME)
         .update("showInlineTip", false, vscode.ConfigurationTarget.Global);
     },
 
     // Commands without keyboard shortcuts
-    "continue.addModel": () => {
+    "ssidevbuddy.addModel": () => {
       captureCommandTelemetry("addModel");
 
-      vscode.commands.executeCommand("continue.continueGUIView.focus");
+      vscode.commands.executeCommand("ssidevbuddy.ssidevbuddyGUIView.focus");
       sidebar.webviewProtocol?.request("addModel", undefined);
     },
-    "continue.sendMainUserInput": (text: string) => {
+    "ssidevbuddy.sendMainUserInput": (text: string) => {
       sidebar.webviewProtocol?.request("userInput", {
         input: text,
       });
     },
-    "continue.selectRange": (startLine: number, endLine: number) => {
+    "ssidevbuddy.selectRange": (startLine: number, endLine: number) => {
       if (!vscode.window.activeTextEditor) {
         return;
       }
@@ -683,7 +683,7 @@ const getCommandsMap: (
         0,
       );
     },
-    "continue.foldAndUnfold": (
+    "ssidevbuddy.foldAndUnfold": (
       foldSelectionLines: number[],
       unfoldSelectionLines: number[],
     ) => {
@@ -694,17 +694,17 @@ const getCommandsMap: (
         selectionLines: foldSelectionLines,
       });
     },
-    "continue.sendToTerminal": (text: string) => {
+    "ssidevbuddy.sendToTerminal": (text: string) => {
       captureCommandTelemetry("sendToTerminal");
       ide.runCommand(text);
     },
-    "continue.newSession": () => {
+    "ssidevbuddy.newSession": () => {
       sidebar.webviewProtocol?.request("newSession", undefined);
     },
-    "continue.viewHistory": () => {
+    "ssidevbuddy.viewHistory": () => {
       sidebar.webviewProtocol?.request("viewHistory", undefined);
     },
-    "continue.focusContinueSessionId": async (
+    "ssidevbuddy.focusContinueSessionId": async (
       sessionId: string | undefined,
     ) => {
       if (!sessionId) {
@@ -716,10 +716,10 @@ const getCommandsMap: (
         sessionId,
       });
     },
-    "continue.applyCodeFromChat": () => {
+    "ssidevbuddy.applyCodeFromChat": () => {
       void sidebar.webviewProtocol.request("applyCodeFromChat", undefined);
     },
-    "continue.toggleFullScreen": () => {
+    "ssidevbuddy.toggleFullScreen": () => {
       focusGUI();
 
       // Check if full screen is already open by checking open tabs
@@ -736,7 +736,7 @@ const getCommandsMap: (
 
       // Create the full screen panel
       let panel = vscode.window.createWebviewPanel(
-        "continue.continueGUIView",
+        "ssidevbuddy.ssidevbuddyGUIView",
         "Continue",
         vscode.ViewColumn.One,
         {
@@ -758,7 +758,7 @@ const getCommandsMap: (
       panel.onDidDispose(
         () => {
           sidebar.resetWebviewProtocolWebview();
-          vscode.commands.executeCommand("continue.focusContinueInput");
+          vscode.commands.executeCommand("ssidevbuddy.focusContinueInput");
         },
         null,
         extensionContext.subscriptions,
@@ -766,12 +766,12 @@ const getCommandsMap: (
 
       vscode.commands.executeCommand("workbench.action.copyEditorToNewWindow");
     },
-    "continue.openConfig": () => {
+    "ssidevbuddy.openConfig": () => {
       core.invoke("config/openProfile", {
         profileId: undefined,
       });
     },
-    "continue.selectFilesAsContext": async (
+    "ssidevbuddy.selectFilesAsContext": async (
       firstUri: vscode.Uri,
       uris: vscode.Uri[],
     ) => {
@@ -779,7 +779,7 @@ const getCommandsMap: (
         throw new Error("No files were selected");
       }
 
-      vscode.commands.executeCommand("continue.continueGUIView.focus");
+      vscode.commands.executeCommand("ssidevbuddy.ssidevbuddyGUIView.focus");
 
       for (const uri of uris) {
         // If it's a folder, add the entire folder contents recursively by using walkDir (to ignore ignored files)
@@ -798,13 +798,13 @@ const getCommandsMap: (
         }
       }
     },
-    "continue.logAutocompleteOutcome": (
+    "ssidevbuddy.logAutocompleteOutcome": (
       completionId: string,
       completionProvider: CompletionProvider,
     ) => {
       completionProvider.accept(completionId);
     },
-    "continue.toggleTabAutocompleteEnabled": () => {
+    "ssidevbuddy.toggleTabAutocompleteEnabled": () => {
       captureCommandTelemetry("toggleTabAutocompleteEnabled");
 
       const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
@@ -840,7 +840,7 @@ const getCommandsMap: (
         }
       }
     },
-    "continue.openTabAutocompleteConfigMenu": async () => {
+    "ssidevbuddy.openTabAutocompleteConfigMenu": async () => {
       captureCommandTelemetry("openTabAutocompleteConfigMenu");
 
       const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
@@ -931,23 +931,23 @@ const getCommandsMap: (
           );
           configHandler.reloadConfig();
         } else if (selectedOption === "$(feedback) Give feedback") {
-          vscode.commands.executeCommand("continue.giveAutocompleteFeedback");
+          vscode.commands.executeCommand("ssidevbuddy.giveAutocompleteFeedback");
         } else if (selectedOption === "$(comment) Open chat (Cmd+L)") {
-          vscode.commands.executeCommand("continue.focusContinueInput");
+          vscode.commands.executeCommand("ssidevbuddy.focusContinueInput");
         } else if (
           selectedOption ===
           "$(screen-full) Open full screen chat (Cmd+K Cmd+M)"
         ) {
-          vscode.commands.executeCommand("continue.toggleFullScreen");
+          vscode.commands.executeCommand("ssidevbuddy.toggleFullScreen");
         } else if (selectedOption === "$(question) Open help center") {
           focusGUI();
-          vscode.commands.executeCommand("continue.navigateTo", "/more", true);
+          vscode.commands.executeCommand("ssidevbuddy.navigateTo", "/more", true);
         }
         quickPick.dispose();
       });
       quickPick.show();
     },
-    "continue.giveAutocompleteFeedback": async () => {
+    "ssidevbuddy.giveAutocompleteFeedback": async () => {
       const feedback = await vscode.window.showInputBox({
         ignoreFocusOut: true,
         prompt:
@@ -961,17 +961,17 @@ const getCommandsMap: (
         client.sendFeedback(feedback, lastLines);
       }
     },
-    "continue.openMorePage": () => {
-      vscode.commands.executeCommand("continue.navigateTo", "/more", true);
+    "ssidevbuddy.openMorePage": () => {
+      vscode.commands.executeCommand("ssidevbuddy.navigateTo", "/more", true);
     },
-    "continue.navigateTo": (path: string, toggle: boolean) => {
+    "ssidevbuddy.navigateTo": (path: string, toggle: boolean) => {
       sidebar.webviewProtocol?.request("navigateTo", { path, toggle });
       focusGUI();
     },
-    "continue.signInToControlPlane": () => {
+    "ssidevbuddy.signInToControlPlane": () => {
       sidebar.webviewProtocol?.request("signInToControlPlane", undefined);
     },
-    "continue.openAccountDialog": () => {
+    "ssidevbuddy.openAccountDialog": () => {
       sidebar.webviewProtocol?.request("openDialogMessage", "account");
     },
   };
@@ -990,7 +990,7 @@ const registerCopyBufferSpy = (context: vscode.ExtensionContext) => {
 
     const clipboardText = await vscode.env.clipboard.readText();
 
-    await context.workspaceState.update("continue.copyBuffer", {
+    await context.workspaceState.update("ssidevbuddy.copyBuffer", {
       text: clipboardText,
       copiedAt: new Date().toISOString(),
     });
