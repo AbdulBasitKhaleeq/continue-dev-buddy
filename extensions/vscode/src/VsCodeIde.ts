@@ -237,7 +237,7 @@ class VsCodeIde implements IDE {
       version: vscode.version,
       remoteName: vscode.env.remoteName || "local",
       extensionVersion:
-        vscode.extensions.getExtension("continue.continue")?.packageJSON
+        vscode.extensions.getExtension("ssidevbuddy.ssidevbuddy")?.packageJSON
           .version,
     });
   }

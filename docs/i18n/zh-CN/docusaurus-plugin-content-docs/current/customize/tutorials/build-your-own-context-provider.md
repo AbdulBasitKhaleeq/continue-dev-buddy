@@ -240,7 +240,7 @@ class MyCustomProvider implements IContextProvider {
 const customProvider = new MyCustomProvider();
 
 // get Continue extension using vscode API
-const continueExt = vscode.extensions.getExtension("continue.continue");
+const continueExt = vscode.extensions.getExtension("ssidevbuddy.ssidevbuddy");
 
 // get the API from the extension
 const continueApi = continueExt?.exports;
