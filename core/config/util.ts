@@ -78,16 +78,19 @@ export function addUserTokenForSSIDevBuddy(userToken: string) {
   editConfigJson((config) => {
     if (config.contextProviders) {
       config.contextProviders = [
-        ...config.contextProviders, 
-          {
-            "name": "ssi-dev-buddy-context",
-            "params": {
-              "url": `${TRIAL_PROXY_URL}/api/vscode/context_api`,
-              "options": {
-                "apiKey" : userToken
-              }
+        ...config.contextProviders.filter(
+          (ctx) =>
+            ctx.name !== "ssi-dev-buddy-context",
+        ),
+        {
+          "name": "ssi-dev-buddy-context",
+          "params": {
+            "url": `${TRIAL_PROXY_URL}/api/vscode/context_api`,
+            "options": {
+              "apiKey": userToken
             }
           }
+        }
       ];
     }
     config.models = config.models

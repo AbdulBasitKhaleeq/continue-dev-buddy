@@ -934,7 +934,7 @@ class IdeProtocolClient(
         "bin",
         ".pytest_cache",
         ".vscode-test",
-        ".continue",
+        ".ssidevbuddy",
         "__pycache__",
         "site-packages",
         ".gradle",

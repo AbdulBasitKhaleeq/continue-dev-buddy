@@ -12,7 +12,7 @@ import Types from "../config/types";
 dotenv.config();
 
 const CONTINUE_GLOBAL_DIR =
-  process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".continue");
+  process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".ssidevbuddy");
 
 export const DEFAULT_CONFIG_TS_CONTENTS = `export function modifyConfig(config: Config): Config {
   return config;

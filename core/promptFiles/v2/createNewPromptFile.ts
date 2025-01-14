@@ -49,7 +49,7 @@ export async function createNewPromptFileV2(
 
   const baseDir = pathModule.join(
     workspaceDirs[0],
-    promptPath ?? pathModule.join(".continue", "prompts"),
+    promptPath ?? pathModule.join(".ssidevbuddy", "prompts"),
   );
 
   // Find the first available filename

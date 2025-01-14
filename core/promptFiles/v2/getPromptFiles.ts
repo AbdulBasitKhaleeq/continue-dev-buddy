@@ -41,7 +41,7 @@ export async function getAllPromptFilesV2(
           ide,
           pathModule.join(
             dir,
-            overridePromptFolder ?? pathModule.join(".continue", "prompts"),
+            overridePromptFolder ?? pathModule.join(".ssidevbuddy", "prompts"),
           ),
         ),
       ),

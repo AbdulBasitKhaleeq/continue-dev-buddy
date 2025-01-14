@@ -633,7 +633,7 @@ const getCommandsMap: (
       captureCommandTelemetry("viewLogs");
 
       // Open ~/.continue/continue.log
-      const logFile = path.join(os.homedir(), ".continue", "ssidevbuddy.log");
+      const logFile = path.join(os.homedir(), ".ssidevbuddy", "ssidevbuddy.log");
       // Make sure the file/directory exist
       if (!fs.existsSync(logFile)) {
         fs.mkdirSync(path.dirname(logFile), { recursive: true });

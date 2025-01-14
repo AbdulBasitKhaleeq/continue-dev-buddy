@@ -121,7 +121,7 @@ export function getMetaKeyName() {
 }
 
 export function getExtensionVersion(): string {
-  const extension: any = vscode.extensions?.getExtension("ssidevbuddy.ssidevbuddy") ?? {};
+  const extension: any = vscode.extensions?.getExtension("strategicsystemsinternational.ssidevbuddy") ?? {};
   console.log(extension);
   return extension?.packageJSON?.version || "0.1.0";
 }

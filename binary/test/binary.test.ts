@@ -51,7 +51,7 @@ function autodetectPlatformAndArch() {
   return [platform, arch];
 }
 
-const CONTINUE_GLOBAL_DIR = path.join(__dirname, "..", ".continue");
+const CONTINUE_GLOBAL_DIR = path.join(__dirname, "..", ".ssidevbuddy");
 if (fs.existsSync(CONTINUE_GLOBAL_DIR)) {
   fs.rmSync(CONTINUE_GLOBAL_DIR, { recursive: true, force: true });
 }

@@ -25,7 +25,7 @@ import javax.swing.JComponent
 
 fun getDiffDirectory(): File {
     val homeDirectory = System.getProperty("user.home")
-    val diffDirPath = Paths.get(homeDirectory).resolve(".continue").resolve(".diffs").toString()
+    val diffDirPath = Paths.get(homeDirectory).resolve(".ssidevbuddy").resolve(".diffs").toString()
     val diffDir = File(diffDirPath)
     if (!diffDir.exists()) {
         diffDir.mkdirs()
