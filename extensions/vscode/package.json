@@ -18,9 +18,9 @@
   "homepage": "https://www.ssidecisions.com",
   "qna": "https://github.com/continuedev/continue/issues/new/choose",
   "license": "Apache-2.0",
-  "displayName": "SSI Dev Buddy",
+  "displayName": "SSI DevBuddy",
   "pricing": "Free",
-  "description": "Wrapper over The leading open-source AI code assistant SSIDevBuddy.dev",
+  "description": "Wrapper over The leading open-source AI code assistant continue.dev",
   "publisher": "StrategicSystemsInternational",
   "engines": {
     "vscode": "^1.70.0",
