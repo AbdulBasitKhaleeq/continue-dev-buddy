@@ -2,7 +2,7 @@
   "name": "ssidevbuddy",
   "icon": "media/icon.png",
   "author": "Strategic Systems International",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/continuedev/continue"
