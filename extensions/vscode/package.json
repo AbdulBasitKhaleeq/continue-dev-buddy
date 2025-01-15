@@ -1,6 +1,6 @@
 {
   "name": "ssidevbuddy",
-  "icon": "media/icon.png",
+  "icon": "media/ssi-icon.png",
   "author": "Strategic Systems International",
   "version": "0.1.2",
   "repository": {
@@ -567,7 +567,7 @@
         {
           "id": "ssidevbuddy",
           "title": "ssidevbuddy",
-          "icon": "media/sidebar-icon.png"
+          "icon": "media/ssi-sidebar-icon.png"
         }
       ]
     },

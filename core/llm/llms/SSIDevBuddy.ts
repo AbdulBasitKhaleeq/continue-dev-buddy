@@ -112,14 +112,6 @@ class SSIDevBuddy extends BaseLLM {
     };
   }
 
-
-  // const response = await this.fetch(`${TRIAL_PROXY_URL}/api/vscode/chat`, {
-  // yield {
-  //   role: "assistant",
-  //   content: JSON.parse(chunk).text,
-  // };
-
-
   protected async *_streamChat(
     messages: ChatMessage[],
     signal: AbortSignal,
@@ -127,11 +119,11 @@ class SSIDevBuddy extends BaseLLM {
   ): AsyncGenerator<ChatMessage> {
     const args = this._convertArgs(this.collectArgs(options));
 
-    await this._countTokens(
-      messages.map((m) => m.content).join("\n"),
-      args.model,
-      true,
-    );
+    // await this._countTokens(
+    //   messages.map((m) => m.content).join("\n"),
+    //   args.model,
+    //   true,
+    // );
 
     const response = await this.fetch(`${TRIAL_PROXY_URL}/api/vscode/chat`, {
       method: "POST",
@@ -145,13 +137,19 @@ class SSIDevBuddy extends BaseLLM {
 
     let completion = "";
     for await (const chunk of streamResponse(response)) {
-      yield {
-        role: "assistant",
-        content: JSON.parse(chunk).text,
-      };
-      completion += chunk;
+      console.log(chunk);
+      try {
+        yield {
+          role: "assistant",
+          content: (JSON.parse(chunk))?.text ?? "",
+        };
+        completion += chunk;
+      }
+      catch (ex) {
+
+      }
     }
-    this._countTokens(completion, args.model, false);
+    // this._countTokens(completion, args.model, false);
   }
 
   supportsFim(): boolean {
@@ -165,7 +163,7 @@ class SSIDevBuddy extends BaseLLM {
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const args = this._convertArgs(this.collectArgs(options));
-
+    console.log("In SSI Dev Buddy -> _streamFim not used");
     try {
       const resp = await this.fetch(`${TRIAL_PROXY_URL}/stream_fim`, {
         method: "POST",
