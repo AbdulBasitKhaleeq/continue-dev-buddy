@@ -43,15 +43,16 @@ export function OnboardingCard(props: OnboardingCardProps) {
   }
 
   return (
-    <StyledCard className="xs:py-4 xs:px-4 relative px-2 py-3">
-      <OnboardingCardTabs
-        activeTab={onboardingCard.activeTab}
-        onTabClick={onboardingCard.setActiveTab}
-      />
-      <CloseButton onClick={onboardingCard.close}>
-        <XMarkIcon className="hidden h-5 w-5 sm:flex" />
-      </CloseButton>
-      <div className="content py-4">{renderTabContent()}</div>
-    </StyledCard>
+    <></>
+    // <StyledCard className="xs:py-4 xs:px-4 relative px-2 py-3">
+    //   <OnboardingCardTabs
+    //     activeTab={onboardingCard.activeTab}
+    //     onTabClick={onboardingCard.setActiveTab}
+    //   />
+    //   <CloseButton onClick={onboardingCard.close}>
+    //     <XMarkIcon className="hidden h-5 w-5 sm:flex" />
+    //   </CloseButton>
+    //   <div className="content py-4">{renderTabContent()}</div>
+    // </StyledCard>
   );
 }

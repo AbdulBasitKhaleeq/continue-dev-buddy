@@ -155,7 +155,7 @@ const Layout = () => {
   useWebviewListener(
     "setupLocalConfig",
     async () => {
-      onboardingCard.open("Local");
+      //onboardingCard.open("Local");
     },
     [],
   );

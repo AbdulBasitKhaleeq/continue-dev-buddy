@@ -143,20 +143,22 @@ export class VsCodeWebviewProtocol
             //       this.request("setupLocalConfig", undefined);
             //     }
             //   });
-          } else if (message.includes("Please sign in with GitHub")) {
-            showFreeTrialLoginMessage(message, this.reloadConfig, () =>
-              this.request("openOnboardingCard", undefined),
-            );
-          } else {
-            Telemetry.capture(
-              "webview_protocol_error",
-              {
-                messageType: msg.messageType,
-                errorMsg: message.split("\n\n")[0],
-                stack: extractMinimalStackTraceInfo(e.stack),
-              },
-              false,
-            );
+          }
+          //  else if (message.includes("Please sign in with GitHub")) {
+          //   showFreeTrialLoginMessage(message, this.reloadConfig, () =>
+          //     this.request("openOnboardingCard", undefined),
+          //   );
+          // }
+           else {
+            // Telemetry.capture(
+            //   "webview_protocol_error",
+            //   {
+            //     messageType: msg.messageType,
+            //     errorMsg: message.split("\n\n")[0],
+            //     stack: extractMinimalStackTraceInfo(e.stack),
+            //   },
+            //   false,
+            // );
             vscode.window
               .showErrorMessage(
                 message.split("\n\n")[0],

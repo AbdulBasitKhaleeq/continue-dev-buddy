@@ -15,11 +15,6 @@ class SSIDevBuddy extends BaseLLM {
   }
 
   private async _getHeaders() {
-    if (!this.apiKey) {
-      throw new Error(
-        "Please sign in to SSI Dev Buddy to continue using it.",
-      );
-    }
     return {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.apiKey}`,
@@ -137,7 +132,6 @@ class SSIDevBuddy extends BaseLLM {
 
     let completion = "";
     for await (const chunk of streamResponse(response)) {
-      console.log(chunk);
       try {
         yield {
           role: "assistant",
