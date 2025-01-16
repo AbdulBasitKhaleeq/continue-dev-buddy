@@ -6,11 +6,7 @@ import { IdeMessengerContext } from "../context/IdeMessenger";
 import { setLoggedInUser } from "../redux/slices/sessionSlice";
 import { useNavigate } from "react-router-dom";
 
-interface LoginFormProps {
-  onDone: () => void;
-}
-
-function LoginForm({ onDone }: LoginFormProps) {
+function LoginForm() {
   
   const navigate = useNavigate();
   const formMethods = useForm();
@@ -26,18 +22,11 @@ function LoginForm({ onDone }: LoginFormProps) {
       });
       if ( result.status != "error" && result.content?.success) {
         dispatch(setLoggedInUser(result));
-        // onDone();
         navigate("/index.html");
       }
-      // TODO error message
     } catch (ex) {
       console.log(ex);
     }
-    // ideMessenger.request("auth/login", { username: formObj.username, password: formObj.password  }).then((result: any)=>{
-    //   dispatch(setLoggedInUser(result));
-    //   // onDone();
-    //   navigate('/index.html')
-    // });
   }
 
   return (

@@ -37,16 +37,16 @@ export class ContinueCompletionProvider
       options.push("Download Ollama");
     }
 
-    if (e.message.includes("Please sign in with GitHub")) {
-      showFreeTrialLoginMessage(
-        e.message,
-        this.configHandler.reloadConfig.bind(this.configHandler),
-        () => {
-          void this.webviewProtocol.request("openOnboardingCard", undefined);
-        },
-      );
-      return;
-    }
+    // if (e.message.includes("Please sign in with GitHub")) {
+    //   showFreeTrialLoginMessage(
+    //     e.message,
+    //     this.configHandler.reloadConfig.bind(this.configHandler),
+    //     () => {
+    //       void this.webviewProtocol.request("openOnboardingCard", undefined);
+    //     },
+    //   );
+    //   return;
+    // }
     vscode.window.showErrorMessage(e.message, ...options).then((val) => {
       if (val === "Documentation") {
         vscode.env.openExternal(

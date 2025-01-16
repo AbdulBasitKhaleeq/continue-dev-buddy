@@ -346,15 +346,15 @@ export abstract class BaseLLM implements ILLM {
             (resp.url.includes("api.mistral.ai") ||
               resp.url.includes("codestral.mistral.ai"))
           ) {
-            if (resp.url.includes("codestral.mistral.ai")) {
-              throw new Error(
-                "You are using a Mistral API key, which is not compatible with the Codestral API. Please either obtain a Codestral API key, or use the Mistral API by setting 'apiBase' to 'https://api.mistral.ai/v1' in config.json.",
-              );
-            } else {
-              throw new Error(
-                "You are using a Codestral API key, which is not compatible with the Mistral API. Please either obtain a Mistral API key, or use the the Codestral API by setting 'apiBase' to 'https://codestral.mistral.ai/v1' in config.json.",
-              );
-            }
+            // if (resp.url.includes("codestral.mistral.ai")) {
+            //   throw new Error(
+            //     "You are using a Mistral API key, which is not compatible with the Codestral API. Please either obtain a Codestral API key, or use the Mistral API by setting 'apiBase' to 'https://api.mistral.ai/v1' in config.json.",
+            //   );
+            // } else {
+            //   throw new Error(
+            //     "You are using a Codestral API key, which is not compatible with the Mistral API. Please either obtain a Mistral API key, or use the the Codestral API by setting 'apiBase' to 'https://codestral.mistral.ai/v1' in config.json.",
+            //   );
+            // }
           }
           throw new Error(
             `HTTP ${resp.status} ${resp.statusText} from ${resp.url}\n\n${text}`,

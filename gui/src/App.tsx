@@ -49,9 +49,7 @@ const router = createMemoryRouter([
       },
       {
         path: "/login",
-        element: <LoginForm onDone={function (): void {
-          throw new Error("Function not implemented.");
-        } } />,
+        element: <LoginForm/>,
       },
       {
         path: "/addModel/provider/:providerName",

@@ -25,21 +25,21 @@ export type OnboardingCardProps = Pick<OnboardingCardState, "activeTab">;
 export function OnboardingCard(props: OnboardingCardProps) {
   const onboardingCard = useOnboardingCard();
 
-  function renderTabContent() {
-    switch (onboardingCard.activeTab) {
-      case "Quickstart":
-        return <Tabs.Quickstart />;
-      case "Best":
-        return <Tabs.Best />;
-      case "Local":
-        return <Tabs.Local />;
-      default:
-        return null;
-    }
-  }
+  // function renderTabContent() {
+  //   switch (onboardingCard.activeTab) {
+  //     case "Quickstart":
+  //       return <Tabs.Quickstart />;
+  //     case "Best":
+  //       return <Tabs.Best />;
+  //     case "Local":
+  //       return <Tabs.Local />;
+  //     default:
+  //       return null;
+  //   }
+  // }
 
   if (getLocalStorage("onboardingStatus") === undefined) {
-    setLocalStorage("onboardingStatus", "Started");
+    setLocalStorage("onboardingStatus", "Completed");
   }
 
   return (

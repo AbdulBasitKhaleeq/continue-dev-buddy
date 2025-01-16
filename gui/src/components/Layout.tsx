@@ -149,7 +149,7 @@ const Layout = () => {
       navigate("/login");
       // onboardingCard.open("Best");
     },
-    [],
+    [navigate],
   );
 
   useWebviewListener(
