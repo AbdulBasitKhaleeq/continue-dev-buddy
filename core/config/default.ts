@@ -7,9 +7,9 @@ import {
 
 export const DEFAULT_CHAT_MODEL_CONFIG: ModelDescription = {
   model: "claude-3-5-sonnet-latest",
-  provider: "anthropic",
+  provider: "ssi-dev-buddy",
   apiKey: "",
-  title: "Claude 3.5 Sonnet",
+  title: "Claude (ssi-devBuddy)",
 };
 
 export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {
@@ -21,40 +21,12 @@ export const DEFAULT_AUTOCOMPLETE_MODEL_CONFIG: ModelDescription = {
 
 export const FREE_TRIAL_MODELS: ModelDescription[] = [
   {
-    title: "Claude 3.5 Sonnet (Free Trial)",
-    provider: "free-trial",
+    title: "Claude (ssi-devBuddy)",
+    provider: "ssi-dev-buddy",
     model: "claude-3-5-sonnet-latest",
     systemMessage:
       "You are an expert software developer. You give helpful and concise responses.",
-  },
-  {
-    title: "GPT-4o (Free Trial)",
-    provider: "free-trial",
-    model: "gpt-4o",
-    systemMessage:
-      "You are an expert software developer. You give helpful and concise responses.",
-  },
-  {
-    title: "Llama3.1 70b (Free Trial)",
-    provider: "free-trial",
-    model: "llama3.1-70b",
-    systemMessage:
-      "You are an expert software developer. You give helpful and concise responses.",
-  },
-  {
-    title: "Codestral (Free Trial)",
-    provider: "free-trial",
-    model: "codestral-latest",
-    systemMessage:
-      "You are an expert software developer. You give helpful and concise responses.",
-  },
-  {
-    title: "Codestral (ssi-dev-buddy)",
-    provider: "ssi-dev-buddy",
-    model: "codestral-latest",
-    systemMessage:
-      "You are an expert software developer. You give helpful and concise responses.",
-  },
+  }
 ];
 
 export const defaultContextProvidersVsCode: ContextProviderWithParams[] = [
