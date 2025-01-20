@@ -1,12 +1,12 @@
 import { TRIAL_FIM_MODEL } from "../../config/onboarding.js";
 import { getHeaders } from "../../continueServer/stubs/headers.js";
 import { TRIAL_PROXY_URL } from "../../control-plane/client.js";
-import { ChatMessage, CompletionOptions, ModelProvider } from "../../index.js";
+import { ChatMessage, CompletionOptions } from "../../index.js";
 import { BaseLLM } from "../index.js";
 import { streamResponse } from "../stream.js";
 
 class SSIDevBuddy extends BaseLLM {
-  static providerName: ModelProvider = "ssi-dev-buddy";
+  static providerName = "ssi-dev-buddy";
 
   private ghAuthToken: string | undefined = undefined;
 
@@ -157,7 +157,6 @@ class SSIDevBuddy extends BaseLLM {
     options: CompletionOptions,
   ): AsyncGenerator<string> {
     const args = this._convertArgs(this.collectArgs(options));
-    console.log("In SSI Dev Buddy -> _streamFim not used");
     try {
       const resp = await this.fetch(`${TRIAL_PROXY_URL}/stream_fim`, {
         method: "POST",

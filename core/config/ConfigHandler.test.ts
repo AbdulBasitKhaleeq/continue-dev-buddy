@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { testConfigHandler } from "../test/util/fixtures";
-import { TEST_DIR } from "../test/util/testDir";
+import { testConfigHandler } from "../test/fixtures";
+import { TEST_DIR } from "../test/testDir";
 import { getConfigTsPath } from "../util/paths";
 
 import { defaultConfig } from "./default";
@@ -14,12 +14,12 @@ describe.skip("Test the ConfigHandler and E2E config loading", () => {
     expect(profiles[0].id).toBe("local");
 
     const currentProfile = testConfigHandler.currentProfile;
-    expect(currentProfile.profileId).toBe("local");
+    expect(currentProfile.profileDescription.id).toBe("local");
   });
 
   test("should load the default config successfully", async () => {
-    const config = await testConfigHandler.loadConfig();
-    expect(config.models.length).toBe(defaultConfig.models.length);
+    const result = await testConfigHandler.loadConfig();
+    expect(result.config!.models.length).toBe(defaultConfig.models.length);
   });
 
   test.skip("should add a system message from config.ts", async () => {

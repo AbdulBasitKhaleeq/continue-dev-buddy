@@ -1,5 +1,5 @@
 import { ContextItem, ToolExtras } from "..";
-import MCPConnectionSingleton from "../context/mcp";
+import { MCPManagerSingleton } from "../context/mcp";
 import { BuiltInToolNames } from "./builtIn";
 
 import { createNewFileImpl } from "./implementations/createNewFile";
@@ -35,11 +35,27 @@ async function callHttpTool(
   return data.output;
 }
 
+export function encodeMCPToolUri(mcpId: string, toolName: string): string {
+  return `mcp://${encodeURIComponent(mcpId)}/${encodeURIComponent(toolName)}`;
+}
+
+export function decodeMCPToolUri(uri: string): [string, string] | null {
+  const url = new URL(uri);
+  if (url.protocol !== "mcp:") {
+    return null;
+  }
+  return [
+    decodeURIComponent(url.hostname),
+    decodeURIComponent(url.pathname).slice(1), // to remove leading '/'
+  ];
+}
+
 async function callToolFromUri(
   uri: string,
   args: any,
   extras: ToolExtras,
 ): Promise<ContextItem[]> {
+  // @ts-ignore
   const canParse = URL.canParse(uri);
   if (!canParse) {
     throw new Error(`Invalid URI: ${uri}`);
@@ -51,11 +67,16 @@ async function callToolFromUri(
     case "https:":
       return callHttpTool(uri, args, extras);
     case "mcp:":
-      const client = await MCPConnectionSingleton.getExistingInstance();
+      const decoded = decodeMCPToolUri(uri);
+      if (!decoded) {
+        throw new Error(`Invalid MCP tool URI: ${uri}`);
+      }
+      const [mcpId, toolName] = decoded;
+      const client = MCPManagerSingleton.getInstance().getConnection(mcpId);
+
       if (!client) {
         throw new Error("MCP connection not found");
       }
-      const toolName = parsedUri!.hostname;
       const response = await client.client.callTool({
         name: toolName,
         arguments: args,

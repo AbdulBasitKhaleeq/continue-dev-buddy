@@ -18,7 +18,8 @@ const modelDescriptionSchema = z.object({
     "azure",
     "nebius",
     "siliconflow",
-    "ssi-dev-buddy"
+    "ssi-dev-buddy",
+    "scaleway",
   ]),
   model: z.string(),
   apiKey: z.string().optional(),
@@ -87,6 +88,7 @@ const embeddingsProviderSchema = z.object({
     "gemini",
     "nebius",
     "siliconflow",
+    "scaleway",
   ]),
   apiBase: z.string().optional(),
   apiKey: z.string().optional(),

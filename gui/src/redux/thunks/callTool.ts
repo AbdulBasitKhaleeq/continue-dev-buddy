@@ -14,7 +14,6 @@ export const callTool = createAsyncThunk<void, undefined, ThunkApiType>(
     const state = getState();
     const toolCallState = selectCurrentToolCall(state);
 
-    console.log("calling tool", toolCallState.toolCall);
     if (!toolCallState) {
       return;
     }
@@ -23,10 +22,16 @@ export const callTool = createAsyncThunk<void, undefined, ThunkApiType>(
       return;
     }
 
+    if (!state.config.defaultModelTitle) {
+      console.error("Cannot call tools, no model selected");
+      return;
+    }
+
     dispatch(setCalling());
 
     const result = await extra.ideMessenger.request("tools/call", {
       toolCall: toolCallState.toolCall,
+      selectedModelTitle: state.config.defaultModelTitle,
     });
 
     if (result.status === "success") {

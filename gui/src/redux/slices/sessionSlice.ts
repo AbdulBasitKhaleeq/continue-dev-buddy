@@ -10,20 +10,26 @@ import {
   ApplyState,
   ChatHistoryItem,
   ChatMessage,
+  CodeToEdit,
+  ContextItem,
   ContextItemWithId,
   FileSymbolMap,
-  Session,
+  MessageModes,
   PromptLog,
-  CodeToEdit,
-  ToolCall,
-  ContextItem,
+  Session,
+  SessionMetadata,
+  ToolCallDelta,
+  ToolCallState,
 } from "core";
+import { ProfileDescription } from "core/config/ConfigHandler";
+import { NEW_SESSION_TITLE } from "core/util/constants";
 import { incrementalParseJson } from "core/util/incrementalParseJson";
 import { renderChatMessage } from "core/util/messageContent";
+import { findUriInDirs, getUriPathBasename } from "core/util/uri";
 import { v4 as uuidv4 } from "uuid";
+import { RootState } from "../store";
 import { streamResponseThunk } from "../thunks/streamResponse";
 import { findCurrentToolCall } from "../util";
-import { RootState } from "../store";
 
 // We need this to handle reorderings (e.g. a mid-array deletion) of the messages array.
 // The proper fix is adding a UUID to all chat messages, but this is the temp workaround.
@@ -32,16 +38,21 @@ type ChatHistoryItemWithMessageId = ChatHistoryItem & {
 };
 
 type SessionState = {
+  lastSessionId?: string;
+  allSessionMetadata: SessionMetadata[];
   history: ChatHistoryItemWithMessageId[];
   isStreaming: boolean;
   title: string;
   id: string;
   selectedProfileId: string;
+  availableProfiles: ProfileDescription[];
   streamAborter: AbortController;
   codeToEdit: CodeToEdit[];
   curCheckpointIndex: number;
-  mainEditorContent?: JSONContent;
+  currentMainEditorContent?: JSONContent;
+  mainEditorContentTrigger?: JSONContent | undefined;
   symbols: FileSymbolMap;
+  mode: MessageModes;
   codeBlockApplyStates: {
     states: ApplyState[];
     curIndex: number;
@@ -50,39 +61,49 @@ type SessionState = {
 };
 
 function isCodeToEditEqual(a: CodeToEdit, b: CodeToEdit) {
-  return a.filepath === b.filepath && a.contents === b.contents;
-}
+  if (a.filepath !== b.filepath || a.contents !== b.contents) {
+    return false;
+  }
 
-function getDefaultMessage(): ChatHistoryItemWithMessageId {
-  return {
-    message: {
-      id: uuidv4(),
-      role: "assistant",
-      content: "",
-    },
-    contextItems: [],
-    mode: "chat",
-    isGatheringContext: false,
-    checkpoint: {},
-    isBeforeCheckpoint: false,
-  };
+  if ("range" in a && "range" in b) {
+    const rangeA = a.range;
+    const rangeB = b.range;
+
+    return (
+      rangeA.start.line === rangeB.start.line &&
+      rangeA.end.line === rangeB.end.line
+    );
+  }
+
+  // If neither has a range, they are considered equal in this context
+  return !("range" in a) && !("range" in b);
 }
 
 const initialState: SessionState = {
+  allSessionMetadata: [],
   history: [],
   isStreaming: false,
-  title: "New Session",
+  title: NEW_SESSION_TITLE,
   id: uuidv4(),
   selectedProfileId: "local",
+  availableProfiles: [
+    {
+      id: "local",
+      title: "Local",
+      errors: undefined,
+    },
+  ],
   curCheckpointIndex: 0,
   streamAborter: new AbortController(),
   codeToEdit: [],
   symbols: {},
+  mode: "chat",
   codeBlockApplyStates: {
     states: [],
     curIndex: 0,
   },
-  loggeedInUser: undefined
+  loggeedInUser: undefined,
+  lastSessionId: undefined,
 };
 
 export const sessionSlice = createSlice({
@@ -107,21 +128,32 @@ export const sessionSlice = createSlice({
       state.isStreaming = true;
     },
     setIsGatheringContext: (state, { payload }: PayloadAction<boolean>) => {
-      state.history.at(-1).isGatheringContext = payload;
+      const curMessage = state.history.at(-1);
+      if (curMessage) {
+        curMessage.isGatheringContext = payload;
+      }
     },
     clearLastEmptyResponse: (state) => {
       if (state.history.length < 2) {
         return;
       }
-
       const lastMessage = state.history[state.history.length - 1];
 
       // Only clear in the case of an empty message
       if (!lastMessage.message.content.length) {
-        state.mainEditorContent =
+        state.mainEditorContentTrigger =
           state.history[state.history.length - 2].editorState;
         state.history = state.history.slice(0, -2);
+        // TODO is this logic correct for tool use conversations?
+        // Maybe slice at last index of "user" role message?
       }
+    },
+    // Trigger value picked up by editor with isMainInput to set its content
+    setMainEditorContentTrigger: (
+      state,
+      action: PayloadAction<JSONContent | undefined>,
+    ) => {
+      state.mainEditorContentTrigger = action.payload;
     },
     updateFileSymbols: (state, action: PayloadAction<FileSymbolMap>) => {
       state.symbols = {
@@ -142,28 +174,63 @@ export const sessionSlice = createSlice({
         state.history[index].contextItems = contextItems;
       }
     },
-    resubmitAtIndex: (
+    submitEditorAndInitAtIndex: (
       state,
       {
         payload,
       }: PayloadAction<{
-        index: number;
+        index?: number;
         editorState: JSONContent;
       }>,
     ) => {
-      const historyItem = state.history[payload.index];
+      const { index, editorState } = payload;
 
-      if (!historyItem) {
-        return;
+      if (typeof index === "number" && index < state.history.length) {
+        // Resubmission - update input message, truncate history after resubmit with new empty response message
+        if (index % 2 === 1) {
+          console.warn(
+            "Corrupted history: resubmitting at odd index, shouldn't happen",
+          );
+        }
+        const historyItem = state.history[index];
+
+        historyItem.message.content = ""; // IMPORTANT - this is quickly updated by resolveEditorContent based on editor state prior to streaming
+        historyItem.editorState = payload.editorState;
+
+        state.history = state.history.slice(0, index + 1).concat({
+          message: {
+            id: uuidv4(),
+            role: "assistant",
+            content: "", // IMPORTANT - this is subsequently updated by response streaming
+          },
+          contextItems: [],
+        });
+
+        state.curCheckpointIndex = Math.floor(index / 2);
+      } else {
+        // New input/response messages
+        state.history = state.history.concat([
+          {
+            message: {
+              id: uuidv4(),
+              role: "user",
+              content: "", // IMPORTANT - this is quickly updated by resolveEditorContent based on editor state prior to streaming
+            },
+            contextItems: [],
+            editorState,
+          },
+          {
+            message: {
+              id: uuidv4(),
+              role: "assistant",
+              content: "", // IMPORTANT - this is subsequently updated by response streaming
+            },
+            contextItems: [],
+          },
+        ]);
+
+        state.curCheckpointIndex = Math.floor((state.history.length - 1) / 2); // TODO this feels really fragile
       }
-
-      historyItem.message.content = "";
-      historyItem.editorState = payload.editorState;
-
-      // Cut off history after the resubmitted message
-      state.history = state.history
-        .slice(0, payload.index + 1)
-        .concat(getDefaultMessage());
 
       state.isStreaming = true;
     },
@@ -171,61 +238,27 @@ export const sessionSlice = createSlice({
       // Deletes the current assistant message and the previous user message
       state.history.splice(action.payload - 1, 2);
     },
-    initNewActiveMessage: (
+    updateHistoryItemAtIndex: (
       state,
       {
         payload,
       }: PayloadAction<{
-        editorState: JSONContent;
-      }>,
-    ) => {
-      state.history.push({
-        ...getDefaultMessage(),
-        message: { role: "user", ...getDefaultMessage().message },
-        editorState: payload.editorState,
-      });
-
-      state.history.push({
-        ...getDefaultMessage(),
-        message: { role: "assistant", ...getDefaultMessage().message },
-        editorState: payload.editorState,
-      });
-
-      state.isStreaming = true;
-      state.curCheckpointIndex = state.curCheckpointIndex + 1;
-    },
-    setMessageAtIndex: (
-      state,
-      {
-        payload,
-      }: PayloadAction<{
-        message: ChatMessage;
         index: number;
-        contextItems?: ContextItemWithId[];
+        updates: Partial<ChatHistoryItemWithMessageId>;
       }>,
     ) => {
-      if (payload.index >= state.history.length) {
-        state.history.push({
-          ...getDefaultMessage(),
-          message: { ...getDefaultMessage().message, ...payload.message },
-          editorState: {
-            type: "doc",
-            content: renderChatMessage(payload.message)
-              .split("\n")
-              .map((line) => ({
-                type: "paragraph",
-                content: line === "" ? [] : [{ type: "text", text: line }],
-              })),
-          },
-        });
+      const { index, updates } = payload;
+      if (!state.history[index]) {
+        console.error(
+          `attempting to update history item at nonexistent index ${index}`,
+          updates,
+        );
+        return;
       }
-
-      state.history[payload.index].message = {
-        ...payload.message,
-        id: uuidv4(),
+      state.history[index] = {
+        ...state.history[index],
+        ...updates,
       };
-
-      state.history[payload.index].contextItems = payload.contextItems || [];
     },
     addContextItemsAtIndex: (
       state,
@@ -260,75 +293,115 @@ export const sessionSlice = createSlice({
       state.streamAborter.abort();
       state.streamAborter = new AbortController();
     },
-    streamUpdate: (state, action: PayloadAction<ChatMessage>) => {
+    streamUpdate: (state, action: PayloadAction<ChatMessage[]>) => {
       if (state.history.length) {
-        const lastMessage = state.history[state.history.length - 1];
-
-        if (
-          action.payload.role &&
-          (lastMessage.message.role !== action.payload.role ||
-            // This is when a tool call comes after assistant text
-            (lastMessage.message.content !== "" &&
-              action.payload.role === "assistant" &&
-              action.payload.toolCalls?.length))
-        ) {
-          // Create a new message
-          const historyItem: ChatHistoryItemWithMessageId = {
-            contextItems: [],
-            message: { id: uuidv4(), ...action.payload },
+        function toolCallDeltaToState(
+          toolCallDelta: ToolCallDelta,
+        ): ToolCallState {
+          const [_, parsedArgs] = incrementalParseJson(
+            toolCallDelta.function?.arguments ?? "{}",
+          );
+          return {
+            status: "generating",
+            toolCall: {
+              id: toolCallDelta.id ?? "",
+              type: toolCallDelta.type ?? "function",
+              function: {
+                name: toolCallDelta.function?.name ?? "",
+                arguments: toolCallDelta.function?.arguments ?? "",
+              },
+            },
+            toolCallId: toolCallDelta.id ?? "",
+            parsedArgs,
           };
+        }
 
-          if (action.payload.role === "assistant" && action.payload.toolCalls) {
-            const [_, parsedArgs] = incrementalParseJson(
-              action.payload.toolCalls[0].function.arguments,
-            );
-            historyItem.toolCallState = {
-              status: "generating",
-              toolCall: action.payload.toolCalls[0] as ToolCall,
-              toolCallId: action.payload.toolCalls[0].id,
-              parsedArgs,
-            };
-          }
-
-          state.history.push(historyItem);
-        } else {
-          // Add to the existing message
-          const msg = state.history[state.history.length - 1].message;
-          if (action.payload.content) {
-            msg.content += renderChatMessage(action.payload);
-          } else if (
-            action.payload.role === "assistant" &&
-            action.payload.toolCalls &&
-            msg.role === "assistant"
+        for (const message of action.payload) {
+          const lastItem = state.history[state.history.length - 1];
+          const lastMessage = lastItem.message;
+          if (
+            lastMessage.role !== message.role ||
+            // This is for when a tool call comes immediately before/after tool call
+            (lastMessage.role === "assistant" &&
+              message.role === "assistant" &&
+              // Last message isn't completely new
+              !(!lastMessage.toolCalls?.length && !lastMessage.content) &&
+              // And there's a difference in tool call presence
+              (lastMessage.toolCalls?.length ?? 0) !==
+                (message.toolCalls?.length ?? 0))
           ) {
-            if (!msg.toolCalls) {
-              msg.toolCalls = [];
-            }
-            action.payload.toolCalls.forEach((toolCall, i) => {
-              if (msg.toolCalls.length <= i) {
-                msg.toolCalls.push(toolCall);
-              } else {
-                msg.toolCalls[i].function.arguments +=
-                  toolCall.function.arguments;
+            // Create a new message
+            const historyItem: ChatHistoryItemWithMessageId = {
+              message: {
+                ...message,
+                id: uuidv4(),
+              },
+              contextItems: [],
+            };
+            if (message.role === "assistant" && message.toolCalls?.[0]) {
+              const toolCallDelta = message.toolCalls[0];
 
-                const [_, parsedArgs] = incrementalParseJson(
-                  msg.toolCalls[i].function.arguments,
+              if (
+                toolCallDelta.id &&
+                toolCallDelta.function?.arguments &&
+                toolCallDelta.function?.name &&
+                toolCallDelta.type
+              ) {
+                console.warn(
+                  "Received streamed tool call without required fields",
+                  toolCallDelta,
                 );
-
-                state.history[
-                  state.history.length - 1
-                ].toolCallState.parsedArgs = parsedArgs;
-                state.history[
-                  state.history.length - 1
-                ].toolCallState.toolCall.function.arguments +=
-                  toolCall.function.arguments;
               }
-            });
+              historyItem.toolCallState = toolCallDeltaToState(toolCallDelta);
+            }
+            state.history.push(historyItem);
+          } else {
+            // Add to the existing message
+            if (message.content) {
+              lastMessage.content += renderChatMessage(message);
+            } else if (
+              message.role === "assistant" &&
+              message.toolCalls?.[0] &&
+              lastMessage.role === "assistant"
+            ) {
+              // Intentionally only supporting one tool call for now.
+              const toolCallDelta = message.toolCalls[0];
+
+              // Update message tool call with delta data
+              const newArgs =
+                (lastMessage.toolCalls?.[0]?.function?.arguments ?? "") +
+                (toolCallDelta.function?.arguments ?? "");
+              if (lastMessage.toolCalls?.[0]) {
+                lastMessage.toolCalls[0].function = {
+                  name:
+                    toolCallDelta.function?.name ??
+                    lastMessage.toolCalls[0].function?.name ??
+                    "",
+                  arguments: newArgs,
+                };
+              } else {
+                lastMessage.toolCalls = [toolCallDelta];
+              }
+
+              // Update current tool call state
+              if (!lastItem.toolCallState) {
+                console.warn(
+                  "Received streamed tool call response prior to initial tool call delta",
+                );
+                lastItem.toolCallState = toolCallDeltaToState(toolCallDelta);
+              }
+
+              const [_, parsedArgs] = incrementalParseJson(newArgs);
+              lastItem.toolCallState.parsedArgs = parsedArgs;
+              lastItem.toolCallState.toolCall.function.arguments = newArgs;
+            }
           }
         }
       }
     },
     newSession: (state, { payload }: PayloadAction<Session | undefined>) => {
+      state.lastSessionId = state.id;
+
       state.streamAborter.abort();
       state.streamAborter = new AbortController();
 
@@ -342,7 +415,7 @@ export const sessionSlice = createSlice({
         state.curCheckpointIndex = 0;
       } else {
         state.history = [];
-        state.title = "New Session";
+        state.title = NEW_SESSION_TITLE;
         state.id = uuidv4();
         state.curCheckpointIndex = 0;
       }
@@ -350,6 +423,49 @@ export const sessionSlice = createSlice({
     updateSessionTitle: (state, { payload }: PayloadAction<string>) => {
       state.title = payload;
     },
+    setAllSessionMetadata: (
+      state,
+      { payload }: PayloadAction<SessionMetadata[]>,
+    ) => {
+      state.allSessionMetadata = payload;
+    },
+    //////////////////////////////////////////////////////////////////////////////////
+    // These are for optimistic session metadata updates, especially for History page
+    addSessionMetadata: (
+      state,
+      { payload }: PayloadAction<SessionMetadata>,
+    ) => {
+      state.allSessionMetadata = [...state.allSessionMetadata, payload];
+    },
+    updateSessionMetadata: (
+      state,
+      {
+        payload,
+      }: PayloadAction<
+        {
+          sessionId: string;
+        } & Partial<SessionMetadata>
+      >,
+    ) => {
+      state.allSessionMetadata = state.allSessionMetadata.map((session) =>
+        session.sessionId === payload.sessionId
+          ? {
+              ...session,
+              ...payload,
+            }
+          : session,
+      );
+      if (payload.title && payload.sessionId === state.id) {
+        state.title = payload.title;
+      }
+    },
+    deleteSessionMetadata: (state, { payload }: PayloadAction<string>) => {
+      // Note, should not be allowed to delete current session from chat session
+      state.allSessionMetadata = state.allSessionMetadata.filter(
+        (session) => session.sessionId !== payload,
+      );
+    },
+    //////////////////////////////////////////////////////////////////////////////////
     addHighlightedCode: (
       state,
       {
@@ -363,17 +479,21 @@ export const sessionSlice = createSlice({
         return { ...item, editing: false };
       });
 
-      const base = payload.rangeInFileWithContents.filepath
-        .split(/[\\/]/)
-        .pop();
+      const { relativePathOrBasename } = findUriInDirs(
+        payload.rangeInFileWithContents.filepath,
+        window.workspacePaths ?? [],
+      );
+      const fileName = getUriPathBasename(
+        payload.rangeInFileWithContents.filepath,
+      );
 
       const lineNums = `(${
         payload.rangeInFileWithContents.range.start.line + 1
       }-${payload.rangeInFileWithContents.range.end.line + 1})`;
 
       contextItems.push({
-        name: `${base} ${lineNums}`,
-        description: payload.rangeInFileWithContents.filepath,
+        name: `${fileName} ${lineNums}`,
+        description: relativePathOrBasename,
         id: {
           providerTitle: "code",
           itemId: uuidv4(),
@@ -381,6 +501,10 @@ export const sessionSlice = createSlice({
         content: payload.rangeInFileWithContents.contents,
         editing: true,
         editable: true,
+        uri: {
+          type: "file",
+          value: payload.rangeInFileWithContents.filepath,
+        },
       });
 
       state.history[state.history.length - 1].contextItems = contextItems;
@@ -391,15 +515,31 @@ export const sessionSlice = createSlice({
         selectedProfileId: payload,
       };
     },
-    setCurCheckpointIndex: (state, { payload }: PayloadAction<number>) => {
-      state.curCheckpointIndex = payload;
+    setAvailableProfiles: (
+      state,
+      { payload }: PayloadAction<ProfileDescription[]>,
+    ) => {
+      return {
+        ...state,
+        availableProfiles: payload,
+        selectedProfileId: payload.find(
+          (profile) => profile.id === state.selectedProfileId,
+        )
+          ? state.selectedProfileId
+          : payload[0]?.id,
+      };
     },
     updateCurCheckpoint: (
       state,
       { payload }: PayloadAction<{ filepath: string; content: string }>,
     ) => {
-      state.history[state.curCheckpointIndex].checkpoint[payload.filepath] =
-        payload.content;
+      const checkpoint = state.history[state.curCheckpointIndex].checkpoint;
+      if (checkpoint) {
+        checkpoint[payload.filepath] = payload.content;
+      }
+    },
+    setCurCheckpointIndex: (state, { payload }: PayloadAction<number>) => {
+      state.curCheckpointIndex = payload;
     },
     updateApplyState: (state, { payload }: PayloadAction<ApplyState>) => {
       const applyState = state.codeBlockApplyStates.states.find(
@@ -497,11 +637,34 @@ export const sessionSlice = createSlice({
         loggeedInUser: null,
       };
     },
+    setMode: (state, action: PayloadAction<MessageModes>) => {
+      state.mode = action.payload;
+    },
   },
   selectors: {
     selectIsGatheringContext: (state) => {
-      const curMessage = state.history.at(-1);
-      return curMessage?.isGatheringContext || false;
+      const curHistoryItem = state.history.at(-1);
+      return curHistoryItem?.isGatheringContext || false;
+    },
+    selectIsInEditMode: (state) => {
+      return state.mode === "edit";
+    },
+    selectIsSingleRangeEditOrInsertion: (state) => {
+      if (state.mode !== "edit") {
+        return false;
+      }
+
+      const isInsertion = state.codeToEdit.length === 0;
+      const selectIsSingleRangeEdit =
+        state.codeToEdit.length === 1 && "range" in state.codeToEdit[0];
+
+      return selectIsSingleRangeEdit || isInsertion;
+    },
+    selectHasCodeToEdit: (state) => {
+      return state.codeToEdit.length > 0;
+    },
+    selectAvailableProfiles: (state) => {
+      return state.availableProfiles;
     },
   },
   extraReducers: (builder) => {
@@ -546,13 +709,13 @@ export const {
   streamUpdate,
   newSession,
   updateSessionTitle,
-  resubmitAtIndex,
   addHighlightedCode,
   addPromptCompletionPair,
   setActive,
-  initNewActiveMessage,
-  setMessageAtIndex,
+  submitEditorAndInitAtIndex,
+  updateHistoryItemAtIndex,
   clearLastEmptyResponse,
+  setMainEditorContentTrigger,
   setSelectedProfileId,
   deleteMessage,
   setIsGatheringContext,
@@ -566,13 +729,25 @@ export const {
   removeCodeToEdit,
   setCalling,
   cancelToolCall,
+  setAvailableProfiles,
   acceptToolCall,
   setToolGenerated,
   setToolCallOutput,
   setLoggedInUser,
-  logOutUser
+  logOutUser,
+  setMode,
+  setAllSessionMetadata,
+  addSessionMetadata,
+  updateSessionMetadata,
+  deleteSessionMetadata,
 } = sessionSlice.actions;
 
-export const { selectIsGatheringContext } = sessionSlice.selectors;
+export const {
+  selectIsGatheringContext,
+  selectIsInEditMode,
+  selectIsSingleRangeEditOrInsertion,
+  selectHasCodeToEdit,
+  selectAvailableProfiles,
+} = sessionSlice.selectors;
 
 export default sessionSlice.reducer;

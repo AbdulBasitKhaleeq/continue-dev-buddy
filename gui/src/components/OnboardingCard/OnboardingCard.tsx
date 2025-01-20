@@ -20,9 +20,7 @@ export interface OnboardingCardState {
   activeTab?: TabTitle;
 }
 
-export type OnboardingCardProps = Pick<OnboardingCardState, "activeTab">;
-
-export function OnboardingCard(props: OnboardingCardProps) {
+export function OnboardingCard() {
   const onboardingCard = useOnboardingCard();
 
   // function renderTabContent() {

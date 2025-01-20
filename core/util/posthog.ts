@@ -2,22 +2,31 @@ import os from "node:os";
 
 import { TeamAnalytics } from "../control-plane/TeamAnalytics.js";
 import { IdeInfo } from "../index.js";
+
 import type { PostHog as PostHogType } from "posthog-node";
 
 export enum PosthogFeatureFlag {
-  AutocompleteTemperature = "autocomplete-temperature",
+  AutocompleteTimeout = "autocomplete-timeout",
+  RecentlyVisitedRangesNumSurroundingLines = "recently-visited-ranges-num-surrounding-lines",
 }
 
 export const EXPERIMENTS: {
   [key in PosthogFeatureFlag]: {
-    [key: string]: { value: number };
+    [key: string]: { value: any };
   };
 } = {
-  [PosthogFeatureFlag.AutocompleteTemperature]: {
-    control: { value: 0.01 },
-    "0_33": { value: 0.33 },
-    "0_66": { value: 0.66 },
-    "0_99": { value: 0.99 },
+  [PosthogFeatureFlag.AutocompleteTimeout]: {
+    control: { value: 150 },
+    "250": { value: 250 },
+    "350": { value: 350 },
+    "450": { value: 450 },
+  },
+  [PosthogFeatureFlag.RecentlyVisitedRangesNumSurroundingLines]: {
+    control: { value: null },
+    "5": { value: 5 },
+    "10": { value: 10 },
+    "15": { value: 15 },
+    "20": { value: 20 },
   },
 };
 
@@ -97,12 +106,21 @@ export class Telemetry {
     }
   }
 
+  private static featureValueCache: Record<string, any> = {};
+
   static async getFeatureFlag(flag: PosthogFeatureFlag) {
-    return Telemetry.client?.getFeatureFlag(flag, Telemetry.uniqueId);
+    const value = Telemetry.client?.getFeatureFlag(flag, Telemetry.uniqueId);
+
+    Telemetry.featureValueCache[flag] = value;
+    return value;
   }
 
   static async getValueForFeatureFlag(flag: PosthogFeatureFlag) {
     try {
+      if (Telemetry.featureValueCache[flag]) {
+        return Telemetry.featureValueCache[flag];
+      }
+
       const userGroup = await Telemetry.getFeatureFlag(flag);
       if (typeof userGroup === "string") {
         return EXPERIMENTS[flag][userGroup].value;

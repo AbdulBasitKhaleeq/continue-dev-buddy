@@ -1,11 +1,13 @@
 import { AutocompleteInput } from "../autocomplete/util/types";
 import { ProfileDescription } from "../config/ConfigHandler";
 
+import { ConfigResult } from "@continuedev/config-yaml";
 import type {
   BrowserSerializedContinueConfig,
   ChatMessage,
   ContextItem,
   ContextItemWithId,
+  ContextProviderWithParams,
   ContextSubmenuItem,
   DiffLine,
   FileSymbolMap,
@@ -21,10 +23,26 @@ import type {
   ToolCall,
 } from "../";
 
-export type ProtocolGeneratorType<T> = AsyncGenerator<{
+export type ProtocolGeneratorYield<T> = {
   done?: boolean;
   content: T;
-}>;
+};
+export type ProtocolGeneratorType<Y> = AsyncGenerator<
+  ProtocolGeneratorYield<Y>
+>;
+
+export type AsyncGeneratorYieldType<T> =
+  T extends AsyncGenerator<infer Y, any, any>
+    ? Y extends ProtocolGeneratorYield<infer PR>
+      ? PR
+      : never
+    : never;
+// export type AsyncGeneratorReturnType<T> =
+//   T extends AsyncGenerator<any, infer R, any>
+//     ? R extends ProtocolGeneratorYield<infer PR>
+//       ? PR
+//       : never
+//     : never;
 
 export type OnboardingModes =
   | "Local"
@@ -39,7 +57,6 @@ export interface ListHistoryOptions {
 }
 
 export type ToCoreFromIdeOrWebviewProtocol = {
-  "update/modelChange": [string, void];
   "update/selectTabAutocompleteModel": [string, void];
 
   // Special
@@ -64,10 +81,14 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   "config/ideSettingsUpdate": [IdeSettings, void];
   "config/getSerializedProfileInfo": [
     undefined,
-    { config: BrowserSerializedContinueConfig; profileId: string },
+    {
+      result: ConfigResult<BrowserSerializedContinueConfig>;
+      profileId: string;
+    },
   ];
   "config/deleteModel": [{ title: string }, void];
-  "config/reload": [undefined, BrowserSerializedContinueConfig];
+  "config/addContextProvider": [ContextProviderWithParams, void];
+  "config/reload": [undefined, ConfigResult<BrowserSerializedContinueConfig>];
   "config/listProfiles": [undefined, ProfileDescription[]];
   "config/openProfile": [{ profileId: string | undefined }, void];
   "context/getContextItems": [
@@ -76,6 +97,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
       query: string;
       fullInput: string;
       selectedCode: RangeInFile[];
+      selectedModelTitle: string;
     },
     ContextItemWithId[],
   ];
@@ -136,7 +158,13 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     },
     ProtocolGeneratorType<DiffLine>,
   ];
-  "chatDescriber/describe": [string, string | undefined];
+  "chatDescriber/describe": [
+    {
+      selectedModelTitle: string;
+      text: string;
+    },
+    string | undefined,
+  ];
   "stats/getTokensPerDay": [
     undefined,
     { day: string; promptTokens: number; generatedTokens: number }[],
@@ -153,7 +181,6 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     undefined | { dirs?: string[]; shouldClearIndexes?: boolean },
     void,
   ];
-  "index/forceReIndexFiles": [undefined | { files?: string[] }, void];
   "index/indexingProgressBarInitialized": [undefined, void];
   completeOnboarding: [
     {
@@ -161,6 +188,12 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     },
     void,
   ];
+
+  // File changes
+  "files/changed": [{ uris?: string[] }, void];
+  "files/opened": [{ uris?: string[] }, void];
+  "files/created": [{ uris?: string[] }, void];
+  "files/deleted": [{ uris?: string[] }, void];
 
   // Docs etc. Indexing. TODO move codebase to this
   "indexing/reindex": [{ type: string; id: string }, void];
@@ -174,8 +207,13 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   "profiles/switch": [{ id: string }, undefined];
 
   "auth/getAuthUrl": [undefined, { url: string }];
-  "tools/call": [{ toolCall: ToolCall }, { contextItems: ContextItem[] }];
+  "tools/call": [
+    { toolCall: ToolCall; selectedModelTitle: string },
+    { contextItems: ContextItem[] },
+  ];
+  "clipboardCache/add": [{ content: string }, void];
 
+  
   "auth/login": [{ username: string, password: string }, { accessToken: string, user: any }];
   "auth/logout": [undefined, void];
 };

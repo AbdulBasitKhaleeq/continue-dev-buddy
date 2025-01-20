@@ -88,7 +88,7 @@ Specifies options for tab autocompletion behavior.
 - `debounceDelay`: Delay (in ms) before triggering autocomplete.
 - `maxSuffixPercentage`: Maximum percentage of prompt for suffix.
 - `prefixPercentage`: Percentage of input for prefix.
-- `template`: Template string for autocomplete, using Mustache templating.
+- `template`: Template string for autocomplete, using Mustache templating. You can use the `{{{ prefix }}}`, `{{{ suffix }}}`, `{{{ filename }}}`, `{{{ reponame }}}`, and `{{{ language }}}` variables.
 - `multilineCompletions`: Controls multiline completions (`"always"`, `"never"`, or `"auto"`).
 - `useCache`: If `true`, caches completions.
 - `onlyMyCode`: If `true`, only includes code within the repository.
@@ -206,10 +206,11 @@ Configuration for the reranker model used in response ranking.
 
 **Properties:**
 
-- `name` (**required**): Reranker name, e.g., `cohere`, `voyage`, `llm`, `free-trial`, `huggingface-tei`
+- `name` (**required**): Reranker name, e.g., `cohere`, `voyage`, `llm`, `free-trial`, `huggingface-tei`, `bedrock`
 - `params`:
   - `model`: Model name
   - `apiKey`: Api key
+  - `region`: Region (for Bedrock only)
 
 Example
 
@@ -249,16 +250,6 @@ Example
   }
 ]
 ```
-
-### `analytics`
-
-Configuration for analytics tracking.
-
-**Properties:**
-
-- `provider`: Analytics provider (`"posthog"` or `"logstash"`).
-- `url`: URL for analytics data.
-- `clientKey`: Client key for analytics.
 
 ### `slashCommands`
 
@@ -364,6 +355,7 @@ Customizable UI settings to control interface appearance and behavior.
 - `fontSize`: Specifies font size for UI elements.
 - `displayRawMarkdown`: If `true`, shows raw markdown in responses.
 - `showChatScrollbar`: If `true`, enables a scrollbar in the chat window.
+- `codeWrap`: If `true`, enables text wrapping in code blocks.
 
 Example:
 
@@ -372,7 +364,9 @@ Example:
   "ui": {
     "codeBlockToolbarPosition": "bottom",
     "fontSize": 14,
-    "displayRawMarkdown": false
+    "displayRawMarkdown": false,
+    "showChatScrollbar": false,
+    "codeWrap": false
   }
 }
 ```
@@ -415,8 +409,8 @@ Several experimental config parameters are available, as described below:
   - `docstring`: Prompt for adding docstrings.
   - `fix`: Prompt for fixing code.
   - `optimize`: Prompt for optimizing code.
-  - `fixGrammar`: Prompt for fixing grammar or spelling.
 - `useChromiumForDocsCrawling`: Use Chromium to crawl docs locally. Useful if the default Cheerio crawler fails on sites that require JavaScript rendering. Downloads and installs Chromium to `~/.continue/.utils`..
+- `modelContextProtocolServers`: See [Model Context Protocol](/customize/context-providers#model-context-protocol)
 
 Example
 
@@ -438,7 +432,16 @@ Example
       "fixGrammar": "Fix grammar in the above but allow for typos."
     },
     "readResponseTTS": false,
-    "useChromiumForDocsCrawling": true
+    "useChromiumForDocsCrawling": true,
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": ["mcp-server-sqlite", "--db-path", "/Users/NAME/test.db"]
+        }
+      }
+    ]
   }
 }
 ```

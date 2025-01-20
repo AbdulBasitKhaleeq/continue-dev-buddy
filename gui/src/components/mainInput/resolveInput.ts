@@ -11,6 +11,8 @@ import { stripImages } from "core/util/messageContent";
 import { IIdeMessenger } from "../../context/IdeMessenger";
 import { Dispatch } from "@reduxjs/toolkit";
 import { setIsGatheringContext } from "../../redux/slices/sessionSlice";
+import { ctxItemToRifWithContents } from "core/commands/util";
+import { getUriFileExtension } from "core/util/uri";
 
 interface MentionAttrs {
   label: string;
@@ -19,20 +21,29 @@ interface MentionAttrs {
   query?: string;
 }
 
+interface ResolveEditorContentInput {
+  editorState: JSONContent;
+  modifiers: InputModifiers;
+  ideMessenger: IIdeMessenger;
+  defaultContextProviders: DefaultContextProvider[];
+  selectedModelTitle: string;
+  dispatch: Dispatch;
+}
+
 /**
  * This function converts the input from the editor to a string, resolving any context items
  * Context items are appended to the top of the prompt and then referenced within the input
- * @param editor
- * @returns string representation of the input
  */
-
-async function resolveEditorContent(
-  editorState: JSONContent,
-  modifiers: InputModifiers,
-  ideMessenger: IIdeMessenger,
-  defaultContextProviders: DefaultContextProvider[],
-  dispatch: Dispatch,
-): Promise<[ContextItemWithId[], RangeInFile[], MessageContent]> {
+async function resolveEditorContent({
+  editorState,
+  modifiers,
+  ideMessenger,
+  defaultContextProviders,
+  selectedModelTitle,
+  dispatch,
+}: ResolveEditorContentInput): Promise<
+  [ContextItemWithId[], RangeInFile[], MessageContent]
+> {
   let parts: MessagePart[] = [];
   let contextItemAttrs: MentionAttrs[] = [];
   const selectedCode: RangeInFile[] = [];
@@ -59,46 +70,41 @@ async function resolveEditorContent(
           parts.push({ type: "text", text });
         }
       } else if (p.type === "codeBlock") {
-        if (!p.attrs.item.editing) {
-          let meta = p.attrs.item.description.split(" ");
-          let relativePath = meta[0] || "";
-          let extName = relativePath.split(".").slice(-1)[0];
-          const text =
-            "\n\n" +
-            "```" +
-            extName +
-            " " +
-            p.attrs.item.description +
-            "\n" +
-            p.attrs.item.content +
-            "\n```";
-          if (parts[parts.length - 1]?.type === "text") {
-            parts[parts.length - 1].text += "\n" + text;
-          } else {
-            parts.push({
-              type: "text",
-              text,
-            });
+        if (p.attrs?.item) {
+          const contextItem = p.attrs.item as ContextItemWithId;
+          const rif = ctxItemToRifWithContents(contextItem, true);
+          // If not editing, include codeblocks in the prompt
+          // If editing is handled by selectedCode below
+          if (!contextItem.editing) {
+            const fileExtension = getUriFileExtension(rif.filepath);
+            // let extName = relativeFilepath.split(".").slice(-1)[0];
+            const text =
+              "\n\n" +
+              "```" +
+              fileExtension +
+              " " +
+              contextItem.description +
+              "\n" +
+              contextItem.content +
+              "\n```";
+            if (parts[parts.length - 1]?.type === "text") {
+              parts[parts.length - 1].text += "\n" + text;
+            } else {
+              parts.push({
+                type: "text",
+                text,
+              });
+            }
           }
+          selectedCode.push(rif);
+        } else {
+          console.warn("codeBlock has no item attribute");
         }
-
-        const name: string = p.attrs.item.name;
-        let lines = name.substring(name.lastIndexOf("(") + 1);
-        lines = lines.substring(0, lines.lastIndexOf(")"));
-        const [start, end] = lines.split("-");
-
-        selectedCode.push({
-          filepath: p.attrs.item.description,
-          range: {
-            start: { line: parseInt(start) - 1, character: 0 },
-            end: { line: parseInt(end) - 1, character: 0 },
-          },
-        });
       } else if (p.type === "image") {
         parts.push({
           type: "imageUrl",
           imageUrl: {
-            url: p.attrs.src,
+            url: p.attrs?.src,
           },
         });
       } else {
@@ -108,7 +114,6 @@ async function resolveEditorContent(
   }
 
   const shouldGatherContext = modifiers.useCodebase || slashCommand;
-
   if (shouldGatherContext) {
     dispatch(setIsGatheringContext(true));
   }
@@ -116,13 +121,13 @@ async function resolveEditorContent(
   let contextItemsText = "";
   let contextItems: ContextItemWithId[] = [];
   for (const item of contextItemAttrs) {
-    const data = {
-      name: item.itemType === "contextProvider" ? item.id : item.itemType,
-      query: item.query,
+    const result = await ideMessenger.request("context/getContextItems", {
+      name: item.itemType === "contextProvider" ? item.id : item.itemType!,
+      query: item.query ?? "",
       fullInput: stripImages(parts),
       selectedCode,
-    };
-    const result = await ideMessenger.request("context/getContextItems", data);
+      selectedModelTitle,
+    });
     if (result.status === "success") {
       const resolvedItems = result.content;
       contextItems.push(...resolvedItems);
@@ -139,6 +144,7 @@ async function resolveEditorContent(
       query: "",
       fullInput: stripImages(parts),
       selectedCode,
+      selectedModelTitle,
     });
 
     if (result.status === "success") {
@@ -158,6 +164,7 @@ async function resolveEditorContent(
         query: provider.query ?? "",
         fullInput: stripImages(parts),
         selectedCode,
+        selectedModelTitle,
       });
       if (result.status === "success") {
         return result.content;
@@ -181,9 +188,8 @@ async function resolveEditorContent(
       parts = [{ type: "text", text: lastPart }];
     }
   }
-
   if (shouldGatherContext) {
-    dispatch(setIsGatheringContext(true));
+    dispatch(setIsGatheringContext(false));
   }
 
   return [contextItems, selectedCode, parts];
@@ -205,22 +211,22 @@ function resolveParagraph(
   p: JSONContent,
 ): [string, MentionAttrs[], string | undefined] {
   let text = "";
-  const contextItems = [];
+  const contextItems: MentionAttrs[] = [];
   let slashCommand: string | undefined = undefined;
   for (const child of p.content || []) {
     if (child.type === "text") {
-      text += text === "" ? child.text.trimStart() : child.text;
+      text += text === "" ? child.text?.trimStart() : child.text;
     } else if (child.type === "mention") {
       text +=
-        typeof child.attrs.renderInlineAs === "string"
+        typeof child.attrs?.renderInlineAs === "string"
           ? child.attrs.renderInlineAs
-          : child.attrs.label;
-      contextItems.push(child.attrs);
+          : child.attrs?.label;
+      contextItems.push(child.attrs as MentionAttrs);
     } else if (child.type === "slashcommand") {
       if (typeof slashCommand === "undefined") {
-        slashCommand = child.attrs.id;
+        slashCommand = child.attrs?.id;
       } else {
-        text += child.attrs.label;
+        text += child.attrs?.label;
       }
     } else {
       console.warn("Unexpected child type", child.type);

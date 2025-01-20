@@ -50,7 +50,7 @@ const InnerHoverDiv = styled.div<{ isBottomToolbarPosition: boolean }>`
 `;
 
 interface StepContainerPreActionButtonsProps {
-  language: string;
+  language: string | null;
   codeBlockContent: string;
   codeBlockIndex: number;
   children: any;
@@ -83,7 +83,7 @@ export default function StepContainerPreActionButtons({
   const defaultModel = useAppSelector(selectDefaultModel);
 
   function onClickApply() {
-    if (!defaultModel) {
+    if (!defaultModel || !streamIdRef.current) {
       return;
     }
     ideMessenger.post("applyToFile", {

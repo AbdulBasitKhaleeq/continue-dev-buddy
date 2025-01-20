@@ -1,16 +1,18 @@
 import { IndexingStatus, SiteIndexingConfig } from "core";
-import { useContext, useMemo } from "react";
-import { useDispatch } from "react-redux";
+import { useContext, useMemo, useState } from "react";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import {
   ArrowPathIcon,
   ArrowTopRightOnSquareIcon,
   CheckCircleIcon,
+  ExclamationTriangleIcon,
   PauseCircleIcon,
-  XMarkIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
-import { useAppSelector } from "../../redux/hooks";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { updateIndexingStatus } from "../../redux/slices/indexingSlice";
+import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
+import ConfirmationDialog from "../dialogs/ConfirmationDialog";
 
 interface IndexingStatusViewerProps {
   docConfig: SiteIndexingConfig;
@@ -21,14 +23,14 @@ const STATUS_TO_ICON: Record<IndexingStatus["status"], any> = {
   paused: PauseCircleIcon,
   complete: CheckCircleIcon,
   aborted: null,
-  deleted: null,
   pending: null,
-  failed: XMarkIcon, // Since we show an erorr message below
+  failed: ExclamationTriangleIcon, // Since we show an error message below
 };
 
 function DocsIndexingStatus({ docConfig }: IndexingStatusViewerProps) {
+  const config = useAppSelector((store) => store.config.config);
   const ideMessenger = useContext(IdeMessengerContext);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const status = useAppSelector(
     (store) => store.indexing.indexing.statuses[docConfig.startUrl],
@@ -53,14 +55,37 @@ function DocsIndexingStatus({ docConfig }: IndexingStatusViewerProps) {
     }
   };
 
+  const [hasDeleted, setHasDeleted] = useState(false); // simple alternative to optimistic redux update
+  const onDelete = () => {
+    // optimistic update
+    dispatch(
+      setDialogMessage(
+        <ConfirmationDialog
+          title={`Delete ${docConfig.title}`}
+          text={`Are you sure you want to remove ${docConfig.title} from your configuration?`}
+          onConfirm={() => {
+            ideMessenger.post("context/removeDocs", {
+              startUrl: docConfig.startUrl,
+            });
+            setHasDeleted(true);
+          }}
+        />,
+      ),
+    );
+    dispatch(setShowDialog(true));
+  };
+
   const progressPercentage = useMemo(() => {
     if (!status) {
       return 0;
     }
-    return Math.min(100, Math.max(0, status.progress * 100));
+    return Math.min(100, Math.max(0, status.progress * 100)).toFixed(0);
   }, [status?.progress]);
 
   const Icon = STATUS_TO_ICON[status?.status];
+  const showProgressPercentage = progressPercentage !== "100";
+
+  if (hasDeleted) return null;
 
   return (
     <div className="mt-2 flex w-full flex-col">
@@ -92,7 +117,15 @@ function DocsIndexingStatus({ docConfig }: IndexingStatusViewerProps) {
           <div className="text-xs text-stone-500">Pending...</div>
         ) : (
           <div className="flex flex-row items-center gap-1 text-stone-500">
-            <span className="text-xs">{progressPercentage.toFixed(0)}%</span>
+            {showProgressPercentage && (
+              <span className="text-xs">{progressPercentage}%</span>
+            )}
+            {status?.status !== "indexing" ? (
+              <TrashIcon
+                className="h-4 w-4 cursor-pointer text-stone-500 hover:brightness-125"
+                onClick={onDelete}
+              />
+            ) : null}
             {Icon ? (
               <Icon
                 className={`inline-block h-4 w-4 text-stone-500 ${
@@ -117,30 +150,30 @@ function DocsIndexingStatus({ docConfig }: IndexingStatusViewerProps) {
 
       <div className="flex flex-row items-center justify-between gap-4">
         <span
-          className={`cursor-pointer whitespace-nowrap text-xs text-stone-500 underline`}
+          className={`cursor-pointer whitespace-nowrap text-xs text-stone-500 ${config.disableIndexing ? "" : "underline"}`}
           onClick={
-            {
-              complete: reIndex,
-              indexing: abort,
-              failed: reIndex,
-              aborted: reIndex,
-              paused: () => {},
-              deleted: () => {},
-              pending: () => {},
-            }[status?.status]
+            config.disableIndexing
+              ? undefined
+              : {
+                  complete: reIndex,
+                  indexing: abort,
+                  failed: reIndex,
+                  aborted: reIndex,
+                  paused: () => {},
+                  pending: () => {},
+                }[status?.status]
           }
         >
-          {
-            {
-              complete: "Click to re-index",
-              indexing: "Cancel indexing",
-              failed: "Click to retry",
-              aborted: "Click to index",
-              paused: "",
-              deleted: "",
-              pending: "",
-            }[status?.status]
-          }
+          {config.disableIndexing
+            ? "Indexing disabled"
+            : {
+                complete: "Click to re-index",
+                indexing: "Cancel indexing",
+                failed: "Click to retry",
+                aborted: "Click to index",
+                paused: "",
+                pending: "",
+              }[status?.status]}
         </span>
 
         <span className="lines lines-1 text-right text-xs text-stone-500">

@@ -2,7 +2,6 @@ import { distance } from "fastest-levenshtein";
 
 import { DiffLine } from "../../..";
 import { LineStream } from "../../../diff/util";
-import { BRACKETS, BRACKETS_REVERSE } from "../BracketMatchingService";
 
 export type LineFilter = (args: {
   lines: LineStream;
@@ -270,6 +269,20 @@ export async function* stopAtLines(
   }
 }
 
+export async function* stopAtLinesExact(
+  stream: LineStream,
+  fullStop: () => void,
+  linesToStopAt: string[],
+): LineStream {
+  for await (const line of stream) {
+    if (linesToStopAt.some((stopAt) => line === stopAt)) {
+      fullStop();
+      break;
+    }
+    yield line;
+  }
+}
+
 /**
  * Filters a LineStream, skipping specified prefixes on the first line.
  * @param {LineStream} lines - The input stream of lines.
@@ -300,6 +313,19 @@ export async function* skipLines(stream: LineStream): LineStream {
     if (!LINES_TO_SKIP.some((skipAt) => line.startsWith(skipAt))) {
       yield line;
     }
+  }
+}
+
+/**
+ * Handles cases where original lines have a trailing whitespace, but new lines do not.
+ * @param {LineStream} stream - The input stream of lines.
+ * @yields {string} Filtered lines that are stripped of trailing whitespace
+ */
+export async function* removeTrailingWhitespace(
+  stream: LineStream,
+): LineStream {
+  for await (const line of stream) {
+    yield line.trimEnd();
   }
 }
 

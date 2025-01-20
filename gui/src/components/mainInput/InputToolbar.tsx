@@ -1,6 +1,6 @@
 import { AtSymbolIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { InputModifiers } from "core";
-import { modelSupportsImages } from "core/llm/autodetect";
+import { modelSupportsImages, modelSupportsTools } from "core/llm/autodetect";
 import { useRef } from "react";
 import styled from "styled-components";
 import {
@@ -9,7 +9,15 @@ import {
   vscForeground,
   vscInputBackground,
 } from "..";
-import { selectUseActiveFile } from "../../redux/selectors";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { selectUseActiveFile, selectUsePlatform } from "../../redux/selectors";
+import { selectDefaultModel } from "../../redux/slices/configSlice";
+import {
+  selectHasCodeToEdit,
+  selectIsInEditMode,
+} from "../../redux/slices/sessionSlice";
+import { exitEditMode } from "../../redux/thunks";
+import { loadLastSession } from "../../redux/thunks/session";
 import {
   getAltKeyLabel,
   getFontSize,
@@ -18,10 +26,9 @@ import {
 } from "../../util";
 import { ToolTip } from "../gui/Tooltip";
 import ModelSelect from "../modelSelection/ModelSelect";
+import AssistantAndModelSelect from "../modelSelection/platform/AssistantAndModelSelect";
 import HoverItem from "./InputToolbar/HoverItem";
 import ToggleToolsButton from "./InputToolbar/ToggleToolsButton";
-import { useAppSelector } from "../../redux/hooks";
-import { selectDefaultModel } from "../../redux/slices/configSlice";
 
 const StyledDiv = styled.div<{ isHidden?: boolean }>`
   padding-top: 4px;
@@ -49,6 +56,7 @@ const EnterButton = styled.button`
   border-radius: ${defaultBorderRadius};
   color: ${vscForeground};
   cursor: pointer;
+
   :disabled {
     cursor: wait;
   }
@@ -76,9 +84,20 @@ interface InputToolbarProps {
 }
 
 function InputToolbar(props: InputToolbarProps) {
+  const dispatch = useAppDispatch();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const defaultModel = useAppSelector(selectDefaultModel);
   const useActiveFile = useAppSelector(selectUseActiveFile);
+  const isInEditMode = useAppSelector(selectIsInEditMode);
+  const hasCodeToEdit = useAppSelector(selectHasCodeToEdit);
+  const isEditModeAndNoCodeToEdit = isInEditMode && !hasCodeToEdit;
+  const isEnterDisabled = props.disabled || isEditModeAndNoCodeToEdit;
+  const shouldRenderToolsButton =
+    defaultModel &&
+    modelSupportsTools(defaultModel.model, defaultModel.provider) &&
+    !props.toolbarOptions?.hideTools;
+
+  const usePlatform = useAppSelector(selectUsePlatform);
 
   const supportsImages =
     defaultModel &&
@@ -98,8 +117,8 @@ function InputToolbar(props: InputToolbarProps) {
         className="find-widget-skip flex"
       >
         <div className="flex items-center justify-start gap-2 whitespace-nowrap">
-          <ModelSelect />
-          <div className="xs:flex -mb-1 hidden items-center gap-1 text-gray-400 transition-colors duration-200">
+          {usePlatform ? <AssistantAndModelSelect /> : <ModelSelect />}
+          <div className="xs:flex -mb-1 hidden items-center text-gray-400 transition-colors duration-200">
             {props.toolbarOptions?.hideImageUpload ||
               (supportsImages && (
                 <>
@@ -117,11 +136,15 @@ function InputToolbar(props: InputToolbarProps) {
                   />
                   <HoverItem>
                     <PhotoIcon
-                      className="h-4 w-4"
+                      className="h-4 w-4 hover:brightness-125"
+                      data-tooltip-id="image-tooltip"
                       onClick={(e) => {
                         fileInputRef.current?.click();
                       }}
                     />
+                    <ToolTip id="image-tooltip" place="top-middle">
+                      Attach an image
+                    </ToolTip>
                   </HoverItem>
                 </>
               ))}
@@ -129,22 +152,24 @@ function InputToolbar(props: InputToolbarProps) {
               <HoverItem onClick={props.onAddContextItem}>
                 <AtSymbolIcon
                   data-tooltip-id="add-context-item-tooltip"
-                  className="h-4 w-4"
+                  className="h-4 w-4 hover:brightness-125"
                 />
 
-                <ToolTip id="add-context-item-tooltip" place="top-start">
+                <ToolTip id="add-context-item-tooltip" place="top-middle">
                   Add context (files, docs, urls, etc.)
                 </ToolTip>
               </HoverItem>
             )}
 
-            {props.toolbarOptions?.hideTools || <ToggleToolsButton />}
+            {shouldRenderToolsButton && <ToggleToolsButton />}
           </div>
         </div>
 
         <div className="flex items-center gap-2 whitespace-nowrap text-gray-400">
-          {props.toolbarOptions?.hideUseCodebase || (
-            <div className="hidden transition-colors duration-200 hover:underline sm:flex">
+          {!props.toolbarOptions?.hideUseCodebase && !isInEditMode && (
+            <div
+              className={`${shouldRenderToolsButton ? "md:flex" : "sm:flex"} hover:underline" hidden transition-colors duration-200`}
+            >
               {props.activeKey === "Alt" ? (
                 <HoverItem className="underline">
                   {`${getAltKeyLabel()}⏎
@@ -171,14 +196,35 @@ function InputToolbar(props: InputToolbarProps) {
             </div>
           )}
 
+          {isInEditMode && (
+            <HoverItem
+              className="hidden hover:underline sm:flex"
+              onClick={async (e) => {
+                await dispatch(
+                  loadLastSession({
+                    saveCurrentSession: false,
+                  }),
+                );
+                dispatch(exitEditMode());
+              }}
+            >
+              <span>
+                <i>Esc</i> to exit
+              </span>
+            </HoverItem>
+          )}
+
           <EnterButton
-            onClick={(e) => {
-              props.onEnter({
-                useCodebase: isMetaEquivalentKeyPressed(e as any),
-                noContext: useActiveFile ? e.altKey : !e.altKey,
-              });
+            data-testid="submit-input-button"
+            onClick={async (e) => {
+              if (props.onEnter) {
+                props.onEnter({
+                  useCodebase: isMetaEquivalentKeyPressed(e as any),
+                  noContext: useActiveFile ? e.altKey : !e.altKey,
+                });
+              }
             }}
-            disabled={props.disabled}
+            disabled={isEnterDisabled}
           >
             <span className="hidden md:inline">
               ⏎ {props.toolbarOptions?.enterText ?? "Enter"}

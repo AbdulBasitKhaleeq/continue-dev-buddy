@@ -1,6 +1,9 @@
-import { ChatHistoryItem, ChatMessage, MessagePart } from "../index.js";
-import { normalizeToMessageParts } from "../util/messageContent.js";
-import { modelSupportsTools } from "./autodetect.js";
+import { ChatHistoryItem, ChatMessage, MessagePart } from "../";
+import { normalizeToMessageParts } from "../util/messageContent";
+
+import { modelSupportsTools } from "./autodetect";
+
+const CUSTOM_SYS_MSG_MODEL_FAMILIES = ["sonnet"];
 
 const SYSTEM_MESSAGE = `When generating new code:
 
@@ -63,15 +66,22 @@ Always follow these guidelines when generating code responses.`;
 const TOOL_USE_RULES = `When using tools, follow the following guidelines:
 - Avoid calling tools unless they are absolutely necessary. For example, if you are asked a simple programming question you do not need web search. As another example, if the user asks you to explain something about code, do not create a new file.`;
 
-function constructSystemPrompt(model: string): string | null {
-  if (model.includes("sonnet")) {
-    return SYSTEM_MESSAGE + "\n\n" + TOOL_USE_RULES;
+function constructSystemPrompt(
+  model: string,
+  provider: string,
+  useTools: boolean,
+): string | null {
+  let systemMessage = "";
+  if (CUSTOM_SYS_MSG_MODEL_FAMILIES.some((family) => model.includes(family))) {
+    systemMessage = SYSTEM_MESSAGE;
   }
-  if (modelSupportsTools(model)) {
-    return TOOL_USE_RULES;
+  if (useTools && modelSupportsTools(model, provider)) {
+    if (systemMessage) {
+      systemMessage += "\n\n";
+    }
+    systemMessage += TOOL_USE_RULES;
   }
-
-  return null;
+  return systemMessage || null;
 }
 
 const CANCELED_TOOL_CALL_MESSAGE =
@@ -80,19 +90,24 @@ const CANCELED_TOOL_CALL_MESSAGE =
 export function constructMessages(
   history: ChatHistoryItem[],
   model: string,
+  provider: string,
+  useTools: boolean,
 ): ChatMessage[] {
+  const filteredHistory = history.filter(
+    (item) => item.message.role !== "system",
+  );
   const msgs: ChatMessage[] = [];
 
-  const systemMessage = constructSystemPrompt(model);
+  const systemMessage = constructSystemPrompt(model, provider, useTools);
   if (systemMessage) {
     msgs.push({
-      role: "system" as const,
+      role: "system",
       content: systemMessage,
     });
   }
 
-  for (let i = 0; i < history.length; i++) {
-    const historyItem = history[i];
+  for (let i = 0; i < filteredHistory.length; i++) {
+    const historyItem = filteredHistory[i];
 
     if (historyItem.message.role === "user") {
       // Gather context items for user messages

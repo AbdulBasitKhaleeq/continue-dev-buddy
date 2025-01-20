@@ -3,6 +3,7 @@ import * as fs from "fs";
 import os from "os";
 import path from "path";
 
+import { fetchwithRequestOptions } from "@continuedev/fetch";
 import * as JSONC from "comment-json";
 import * as tar from "tar";
 
@@ -19,8 +20,9 @@ import {
   IDE,
   IdeSettings,
   IdeType,
+  ILLM,
+  LLMOptions,
   ModelDescription,
-  Reranker,
   RerankerDescription,
   SerializedContinueConfig,
   SlashCommand,
@@ -29,37 +31,39 @@ import {
   slashCommandFromDescription,
   slashFromCustomCommand,
 } from "../commands/index.js";
-import MCPConnectionSingleton from "../context/mcp";
-import CodebaseContextProvider from "../context/providers/CodebaseContextProvider";
+import { AllRerankers } from "../context/allRerankers";
+import { MCPManagerSingleton } from "../context/mcp";
 import ContinueProxyContextProvider from "../context/providers/ContinueProxyContextProvider";
 import CustomContextProviderClass from "../context/providers/CustomContextProvider";
 import FileContextProvider from "../context/providers/FileContextProvider";
 import { contextProviderClassFromName } from "../context/providers/index";
 import PromptFilesContextProvider from "../context/providers/PromptFilesContextProvider";
-import { AllRerankers } from "../context/rerankers/index";
-import { LLMReranker } from "../context/rerankers/llm";
-import { allEmbeddingsProviders } from "../indexing/embeddings";
-import TransformersJsEmbeddingsProvider from "../indexing/embeddings/TransformersJsEmbeddingsProvider";
+import { allEmbeddingsProviders } from "../indexing/allEmbeddingsProviders";
 import { BaseLLM } from "../llm";
 import { llmFromDescription } from "../llm/llms";
 import CustomLLMClass from "../llm/llms/CustomLLM";
 import FreeTrial from "../llm/llms/FreeTrial";
+import { LLMReranker } from "../llm/llms/llm";
+import TransformersJsEmbeddingsProvider from "../llm/llms/TransformersJsEmbeddingsProvider";
+import { slashCommandFromPromptFileV1 } from "../promptFiles/v1/slashCommandFromPromptFile";
+import { getAllPromptFiles } from "../promptFiles/v2/getPromptFiles";
 import { allTools } from "../tools";
 import { copyOf } from "../util";
-import { fetchwithRequestOptions } from "../util/fetchWithOptions";
 import { GlobalContext } from "../util/GlobalContext";
 import mergeJson from "../util/merge";
 import {
   DEFAULT_CONFIG_TS_CONTENTS,
-  getConfigJsPath,
-  getConfigJsPathForRemote,
   getConfigJsonPath,
   getConfigJsonPathForRemote,
+  getConfigJsPath,
+  getConfigJsPathForRemote,
   getConfigTsPath,
   getContinueDotEnv,
   getEsbuildBinaryPath,
-  readAllGlobalPromptFiles,
 } from "../util/paths";
+
+import { ConfigResult, ConfigValidationError } from "@continuedev/config-yaml";
+import { usePlatform } from "../control-plane/flags";
 import {
   defaultContextProvidersJetBrains,
   defaultContextProvidersVsCode,
@@ -67,18 +71,8 @@ import {
   defaultSlashCommandsVscode,
 } from "./default";
 import { getSystemPromptDotFile } from "./getSystemPromptDotFile";
-import {
-  DEFAULT_PROMPTS_FOLDER,
-  getPromptFiles,
-  slashCommandFromPromptFile,
-} from "./promptFile.js";
-import { ConfigValidationError, validateConfig } from "./validation.js";
-
-export interface ConfigResult<T> {
-  config: T | undefined;
-  errors: ConfigValidationError[] | undefined;
-  configLoadInterrupted: boolean;
-}
+// import { isSupportedLanceDbCpuTarget } from "./util";
+import { validateConfig } from "./validation.js";
 
 function resolveSerializedConfig(filepath: string): SerializedContinueConfig {
   let content = fs.readFileSync(filepath, "utf8");
@@ -114,6 +108,7 @@ function loadSerializedConfig(
   ideSettings: IdeSettings,
   ideType: IdeType,
   overrideConfigJson: SerializedContinueConfig | undefined,
+  ide: IDE,
 ): ConfigResult<SerializedContinueConfig> {
   const configPath = getConfigJsonPath(ideType);
   let config: SerializedContinueConfig = overrideConfigJson!;
@@ -176,14 +171,19 @@ function loadSerializedConfig(
       ? [...defaultSlashCommandsVscode]
       : [...defaultSlashCommandsJetBrains];
 
+  // Temporarily disabling this check until we can verify the commands are accuarate
+  // if (!isSupportedLanceDbCpuTarget(ide)) {
+  //   config.disableIndexing = true;
+  // }
+
   return { config, errors, configLoadInterrupted: false };
 }
 
 async function serializedToIntermediateConfig(
   initial: SerializedContinueConfig,
   ide: IDE,
-  loadPromptFiles: boolean = true,
 ): Promise<Config> {
+  // DEPRECATED - load custom slash commands
   const slashCommands: SlashCommand[] = [];
   for (const command of initial.slashCommands || []) {
     const newCommand = slashCommandFromDescription(command);
@@ -195,33 +195,18 @@ async function serializedToIntermediateConfig(
     slashCommands.push(slashFromCustomCommand(command));
   }
 
-  const workspaceDirs = await ide.getWorkspaceDirs();
-  const promptFolder = initial.experimental?.promptPath;
+  // DEPRECATED - load slash commands from v1 prompt files
+  // NOTE: still checking the v1 default .prompts folder for slash commands
+  const promptFiles = await getAllPromptFiles(
+    ide,
+    initial.experimental?.promptPath,
+    true,
+  );
 
-  if (loadPromptFiles) {
-    // v1 prompt files
-    let promptFiles: { path: string; content: string }[] = [];
-    promptFiles = (
-      await Promise.all(
-        workspaceDirs.map((dir) =>
-          getPromptFiles(
-            ide,
-            path.join(dir, promptFolder ?? DEFAULT_PROMPTS_FOLDER),
-          ),
-        ),
-      )
-    )
-      .flat()
-      .filter(({ path }) => path.endsWith(".prompt"));
-
-    // Also read from ~/.continue/.prompts
-    promptFiles.push(...readAllGlobalPromptFiles());
-
-    for (const file of promptFiles) {
-      const slashCommand = slashCommandFromPromptFile(file.path, file.content);
-      if (slashCommand) {
-        slashCommands.push(slashCommand);
-      }
+  for (const file of promptFiles) {
+    const slashCommand = slashCommandFromPromptFileV1(file.path, file.content);
+    if (slashCommand) {
+      slashCommands.push(slashCommand);
     }
   }
 
@@ -240,11 +225,18 @@ function isModelDescription(
   return (llm as ModelDescription).title !== undefined;
 }
 
-function isContextProviderWithParams(
+export function isContextProviderWithParams(
   contextProvider: CustomContextProvider | ContextProviderWithParams,
 ): contextProvider is ContextProviderWithParams {
   return (contextProvider as ContextProviderWithParams).name !== undefined;
 }
+
+const getCodebaseProvider = async (params: any) => {
+  const { default: CodebaseContextProvider } = await import(
+    "../context/providers/CodebaseContextProvider"
+  );
+  return new CodebaseContextProvider(params);
+};
 
 /** Only difference between intermediate and final configs is the `models` array */
 async function intermediateToFinalConfig(
@@ -256,7 +248,9 @@ async function intermediateToFinalConfig(
   workOsAccessToken: string | undefined,
   loadPromptFiles: boolean = true,
   allowFreeTrial: boolean = true,
-): Promise<ContinueConfig> {
+): Promise<{ config: ContinueConfig; errors: ConfigValidationError[] }> {
+  const errors: ConfigValidationError[] = [];
+
   // Auto-detect models
   let models: BaseLLM[] = [];
   
@@ -403,9 +397,14 @@ async function intermediateToFinalConfig(
         | ContextProviderWithParams
         | undefined
     )?.params || {};
+
   const DEFAULT_CONTEXT_PROVIDERS = [
     new FileContextProvider({}),
-    new CodebaseContextProvider(codebaseContextParams),
+    // Add codebase provider if indexing is enabled
+    ...(!config.disableIndexing
+      ? [await getCodebaseProvider(codebaseContextParams)]
+      : []),
+    // Add prompt files provider if enabled
     ...(loadPromptFiles ? [new PromptFilesContextProvider({})] : []),
   ];
 
@@ -453,8 +452,12 @@ async function intermediateToFinalConfig(
       ) {
         config.embeddingsProvider = new embeddingsProviderClass();
       } else {
+        const llmOptions: LLMOptions = {
+          model: options.model ?? "UNSPECIFIED",
+          ...options,
+        };
         config.embeddingsProvider = new embeddingsProviderClass(
-          options,
+          llmOptions,
           (url: string | URL, init: any) =>
             fetchwithRequestOptions(url, init, {
               ...config.requestOptions,
@@ -470,7 +473,7 @@ async function intermediateToFinalConfig(
   }
 
   // Reranker
-  if (config.reranker && !(config.reranker as Reranker | undefined)?.rerank) {
+  if (config.reranker && !(config.reranker as ILLM | undefined)?.rerank) {
     const { name, params } = config.reranker as RerankerDescription;
     const rerankerClass = AllRerankers[name];
 
@@ -482,7 +485,11 @@ async function intermediateToFinalConfig(
         config.reranker = new LLMReranker(llm);
       }
     } else if (rerankerClass) {
-      config.reranker = new rerankerClass(params);
+      const llmOptions: LLMOptions = {
+        model: "rerank-2",
+        ...params,
+      };
+      config.reranker = new rerankerClass(llmOptions);
     }
   }
 
@@ -497,25 +504,43 @@ async function intermediateToFinalConfig(
   };
 
   // Apply MCP if specified
-  if (config.experimental?.modelContextProtocolServer) {
-    const mcpConnection = await MCPConnectionSingleton.getInstance(
-      config.experimental.modelContextProtocolServer,
+  const mcpManager = MCPManagerSingleton.getInstance();
+  if (config.experimental?.modelContextProtocolServers) {
+    await Promise.all(
+      config.experimental.modelContextProtocolServers?.map(
+        async (server, index) => {
+          const mcpId = index.toString();
+          const mcpConnection = mcpManager.createConnection(mcpId, server);
+          if (!mcpConnection) {
+            return;
+          }
+
+          const abortController = new AbortController();
+
+          try {
+            const mcpError = await mcpConnection.modifyConfig(
+              continueConfig,
+              mcpId,
+              abortController.signal,
+            );
+            if (mcpError) {
+              errors.push(mcpError);
+            }
+          } catch (e: any) {
+            errors.push({
+              fatal: false,
+              message: `Failed to load MCP server: ${e.message}`,
+            });
+            if (e.name !== "AbortError") {
+              throw e;
+            }
+          }
+        },
+      ) || [],
     );
-    continueConfig = await Promise.race<ContinueConfig>([
-      mcpConnection.modifyConfig(continueConfig),
-      new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error("MCP connection timed out after 2000ms")),
-          2000,
-        ),
-      ),
-    ]).catch((error) => {
-      console.warn("MCP connection error:", error);
-      return continueConfig; // Return original config if timeout occurs
-    });
   }
 
-  return continueConfig;
+  return { config: continueConfig, errors };
 }
 
 function finalToBrowserConfig(
@@ -548,11 +573,12 @@ function finalToBrowserConfig(
     disableIndexing: final.disableIndexing,
     disableSessionTitles: final.disableSessionTitles,
     userToken: final.userToken,
-    embeddingsProvider: final.embeddingsProvider?.id,
+    embeddingsProvider: final.embeddingsProvider?.embeddingId,
     ui: final.ui,
     experimental: final.experimental,
     docs: final.docs,
     tools: final.tools,
+    usePlatform: usePlatform(),
   };
 }
 
@@ -756,6 +782,7 @@ async function loadFullConfigNode(
     ideSettings,
     ideType,
     overrideConfigJson,
+    ide,
   );
 
   if (!serialized || configLoadInterrupted) {
@@ -826,21 +853,25 @@ async function loadFullConfigNode(
   }
 
   // Convert to final config format
-  const finalConfig = await intermediateToFinalConfig(
-    intermediate,
-    ide,
-    ideSettings,
-    uniqueId,
-    writeLog,
-    workOsAccessToken,
-  );
-  return { config: finalConfig, errors, configLoadInterrupted: false };
+  const { config: finalConfig, errors: finalErrors } =
+    await intermediateToFinalConfig(
+      intermediate,
+      ide,
+      ideSettings,
+      uniqueId,
+      writeLog,
+      workOsAccessToken,
+    );
+  return {
+    config: finalConfig,
+    errors: [...(errors ?? []), ...finalErrors],
+    configLoadInterrupted: false,
+  };
 }
 
 export {
   finalToBrowserConfig,
   intermediateToFinalConfig,
   loadFullConfigNode,
-  serializedToIntermediateConfig,
   type BrowserSerializedContinueConfig,
 };

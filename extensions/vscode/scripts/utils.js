@@ -13,7 +13,7 @@ const continueDir = path.join(__dirname, "..", "..", "..");
 function copyConfigSchema() {
   // Modify and copy for .continuerc.json
   const schema = JSON.parse(fs.readFileSync("config_schema.json", "utf8"));
-  schema.definitions.SerializedContinueConfig.properties.mergeBehavior = {
+  schema.$defs.SerializedContinueConfig.properties.mergeBehavior = {
     type: "string",
     enum: ["merge", "overwrite"],
     default: "merge",
@@ -505,6 +505,26 @@ async function installNodeModuleInTempDirAndCopyToCurrent(packageName, toCopy) {
   }
 }
 
+async function copyScripts() {
+  process.chdir(path.join(continueDir, "extensions", "vscode"));
+  console.log("[info] Copying scripts from core");
+  await new Promise((resolve, reject) => {
+    ncp(
+      path.join(__dirname, "../../../core/scripts"),
+      path.join(__dirname, "../out"),
+      { dereference: true },
+      (error) => {
+        if (error) {
+          console.warn("[error] Error copying script files", error);
+          reject(error);
+        } else {
+          resolve();
+        }
+      },
+    );
+  });
+}
+
 module.exports = {
   copyConfigSchema,
   installNodeModules,
@@ -519,4 +539,5 @@ module.exports = {
   downloadSqliteBinary,
   downloadRipgrepBinary,
   copyTokenizers,
+  copyScripts
 };

@@ -1,10 +1,15 @@
 import { Editor, ReactRenderer } from "@tiptap/react";
-import { ContextProviderDescription, ContextSubmenuItem } from "core";
+import {
+  ContextProviderDescription,
+  ContextSubmenuItem,
+  ContextSubmenuItemWithProvider,
+} from "core";
 import { MutableRefObject } from "react";
 import tippy from "tippy.js";
 import { IIdeMessenger } from "../../context/IdeMessenger";
 import MentionList from "./MentionList";
 import { ComboBoxItem, ComboBoxItemType, ComboBoxSubAction } from "./types";
+import { TIPPY_DIV_ID } from "./TipTapEditor";
 
 function getSuggestion(
   items: (props: { query: string }) => Promise<ComboBoxItem[]>,
@@ -37,9 +42,16 @@ function getSuggestion(
             return;
           }
 
+          const container = document.getElementById(TIPPY_DIV_ID);
+
+          if (!container) {
+            console.log("no container");
+            return;
+          }
+
           popup = tippy("body", {
             getReferenceClientRect: props.clientRect,
-            appendTo: () => document.body,
+            appendTo: () => container,
             content: component.element,
             showOnCreate: true,
             interactive: true,
@@ -104,7 +116,7 @@ export function getContextProviderDropdownOptions(
     (
       providerTitle: string | undefined,
       query: string,
-    ) => (ContextSubmenuItem & { providerTitle: string })[]
+    ) => ContextSubmenuItemWithProvider[]
   >,
   enterSubmenu: (editor: Editor, providerId: string) => void,
   onClose: () => void,
@@ -129,7 +141,7 @@ export function getContextProviderDropdownOptions(
       });
     }
 
-    const mainResults: any[] =
+    const contextProviderMatches: ComboBoxItem[] =
       availableContextProvidersRef.current
         ?.filter(
           (provider) =>
@@ -148,21 +160,8 @@ export function getContextProviderDropdownOptions(
         }))
         .sort((c, _) => (c.id === "file" ? -1 : 1)) || [];
 
-    if (mainResults.length === 0) {
-      const results = getSubmenuContextItemsRef.current(undefined, query);
-      return results.map((result) => {
-        return {
-          ...result,
-          label: result.title,
-          type: result.providerTitle as ComboBoxItemType,
-          query: result.id,
-          icon: result.icon,
-        };
-      });
-    } else if (
-      mainResults.length === availableContextProvidersRef.current.length
-    ) {
-      mainResults.push({
+    if (contextProviderMatches.length) {
+      contextProviderMatches.push({
         title: "Add more context providers",
         type: "action",
         action: () => {
@@ -173,8 +172,20 @@ export function getContextProviderDropdownOptions(
         },
         description: "",
       });
+      return contextProviderMatches;
     }
-    return mainResults;
+
+    // No provider matches -> search all providers
+    const results = getSubmenuContextItemsRef.current(undefined, query);
+    return results.map((result) => {
+      return {
+        ...result,
+        label: result.title,
+        type: result.providerTitle as ComboBoxItemType,
+        query: result.id,
+        icon: result.icon,
+      };
+    });
   };
 
   return getSuggestion(items, enterSubmenu, onClose, onOpen);

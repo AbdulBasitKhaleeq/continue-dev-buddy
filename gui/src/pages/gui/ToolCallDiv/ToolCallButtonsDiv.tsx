@@ -6,11 +6,11 @@ import {
   vscButtonBackground,
   vscButtonForeground,
 } from "../../../components";
-import Spinner from "../../../components/markdown/StepContainerPreToolbar/Spinner";
+import Spinner from "../../../components/gui/Spinner";
+import { useAppDispatch } from "../../../redux/hooks";
 import { selectCurrentToolCall } from "../../../redux/selectors/selectCurrentToolCall";
 import { callTool } from "../../../redux/thunks/callTool";
 import { cancelTool } from "../../../redux/thunks/cancelTool";
-import { useAppDispatch } from "../../../redux/hooks";
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -75,7 +75,10 @@ export function ToolCallButtons(props: ToolCallButtonsProps) {
             <RejectButton onClick={() => dispatch(cancelTool())}>
               Cancel
             </RejectButton>
-            <AcceptButton onClick={() => dispatch(callTool())}>
+            <AcceptButton
+              onClick={() => dispatch(callTool())}
+              data-testid="accept-tool-call-button"
+            >
               Continue
             </AcceptButton>
           </>

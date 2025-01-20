@@ -3,7 +3,7 @@ import os from "os";
 import { jest } from "@jest/globals";
 
 import { ContinueConfig } from "../..";
-import { testConfigHandler } from "../../test/util/fixtures";
+import { testConfigHandler } from "../../test/fixtures";
 import FileSystemIde from "../../util/filesystem";
 
 import DocsCrawler, { ChromiumInstaller, type PageData } from "./DocsCrawler";
@@ -28,7 +28,8 @@ describe.skip("DocsCrawler", () => {
   let docsCrawler: DocsCrawler;
 
   beforeAll(async () => {
-    config = await testConfigHandler.loadConfig();
+    const result = await testConfigHandler.loadConfig();
+    config = result.config!;
     mockIde = new FileSystemIde(process.cwd());
     chromiumInstaller = new ChromiumInstaller(mockIde, config);
     docsCrawler = new DocsCrawler(mockIde, config);

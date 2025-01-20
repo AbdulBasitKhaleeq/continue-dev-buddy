@@ -1,13 +1,12 @@
 import { ChatHistoryItem } from "core";
-import { useSelector } from "react-redux";
-import { RootState } from "../../redux/store";
 import AcceptRejectAllButtons from "./AcceptRejectAllButtons";
 import FeedbackButtons from "./FeedbackButtons";
-import UndoAndRedoButtons from "./UndoAndRedoButtons";
 
 import { renderChatMessage } from "core/util/messageContent";
 import { CopyIconButton } from "../gui/CopyIconButton";
-import { useAppSelector } from "../../redux/hooks";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { exitEditMode } from "../../redux/thunks/exitEditMode";
+import { loadLastSession } from "../../redux/thunks/session";
 
 export interface EditActionsProps {
   index: number;
@@ -18,6 +17,7 @@ export default function EditActions({ index, item }: EditActionsProps) {
   // const curCheckpointIndex = useSelector(
   //   (store: RootState) => store.state.curCheckpointIndex,
   // );
+  const dispatch = useAppDispatch();
 
   const isStreaming = useAppSelector((state) => state.session.isStreaming);
 
@@ -36,7 +36,7 @@ export default function EditActions({ index, item }: EditActionsProps) {
   // const isCurCheckpoint = Math.floor(index / 2) === curCheckpointIndex;
   const hasPendingApplies = pendingApplyStates.length > 0;
 
-  if (isStreaming) return;
+  if (isStreaming) return null;
 
   return (
     <div
@@ -55,7 +55,19 @@ export default function EditActions({ index, item }: EditActionsProps) {
 
       <div className="flex-2 flex justify-center">
         {hasPendingApplies && (
-          <AcceptRejectAllButtons pendingApplyStates={pendingApplyStates} />
+          <AcceptRejectAllButtons
+            pendingApplyStates={pendingApplyStates}
+            onAcceptOrReject={async (outcome) => {
+              if (outcome === "acceptDiff") {
+                await dispatch(
+                  loadLastSession({
+                    saveCurrentSession: false,
+                  }),
+                );
+                dispatch(exitEditMode());
+              }
+            }}
+          />
         )}
         {/* {hasClosedAllStreams && <UndoAndRedoButtons />} */}
       </div>

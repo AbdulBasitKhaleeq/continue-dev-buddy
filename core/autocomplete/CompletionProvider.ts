@@ -3,11 +3,9 @@ import { TRIAL_FIM_MODEL } from "../config/onboarding.js";
 import { IDE, ILLM } from "../index.js";
 import OpenAI from "../llm/llms/OpenAI.js";
 import { DEFAULT_AUTOCOMPLETE_OPTS } from "../util/parameters.js";
-import { EXPERIMENTS, PosthogFeatureFlag, Telemetry } from "../util/posthog.js";
 
 import { shouldCompleteMultiline } from "./classification/shouldCompleteMultiline.js";
 import { ContextRetrievalService } from "./context/ContextRetrievalService.js";
-// @prettier-ignore
 
 import { BracketMatchingService } from "./filtering/BracketMatchingService.js";
 import { CompletionStreamer } from "./generation/CompletionStreamer.js";
@@ -59,6 +57,11 @@ export class CompletionProvider {
       return undefined;
     }
 
+    // Temporary fix for JetBrains autocomplete bug as described in https://github.com/continuedev/continue/pull/3022
+    if (llm.model === undefined && llm.completionOptions?.model !== undefined) {
+      llm.model = llm.completionOptions.model;
+    }
+
     // Ignore empty API keys for Mistral since we currently write
     // a template provider without one during onboarding
     if (llm.providerName === "mistral" && llm.apiKey === "") {
@@ -67,11 +70,7 @@ export class CompletionProvider {
 
     // Set temperature (but don't override)
     if (llm.completionOptions.temperature === undefined) {
-      const value = await Telemetry.getValueForFeatureFlag(
-        PosthogFeatureFlag.AutocompleteTemperature,
-      );
-
-      llm.completionOptions.temperature = value ?? 0.01;
+      llm.completionOptions.temperature = 0.01;
     }
 
     if (llm instanceof OpenAI) {
@@ -122,10 +121,10 @@ export class CompletionProvider {
   }
 
   private async _getAutocompleteOptions() {
-    const config = await this.configHandler.loadConfig();
+    const { config } = await this.configHandler.loadConfig();
     const options = {
       ...DEFAULT_AUTOCOMPLETE_OPTS,
-      ...config.tabAutocompleteOptions,
+      ...config?.tabAutocompleteOptions,
     };
     return options;
   }

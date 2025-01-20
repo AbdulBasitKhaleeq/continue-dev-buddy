@@ -4,6 +4,7 @@ import {
   type AutocompleteOutcome,
 } from "core/autocomplete/util/types";
 import { ConfigHandler } from "core/config/ConfigHandler";
+import * as URI from "uri-js";
 import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
 
@@ -12,6 +13,7 @@ import { VsCodeWebviewProtocol } from "../webviewProtocol";
 
 import { getDefinitionsFromLsp } from "./lsp";
 import { RecentlyEditedTracker } from "./recentlyEdited";
+import { RecentlyVisitedRangesService } from "./RecentlyVisitedRangesService";
 import {
   StatusBarStatus,
   getStatusBarStatus,
@@ -19,8 +21,18 @@ import {
   stopStatusBarLoading,
 } from "./statusBar";
 
-import type { IDE } from "core";
 import type { TabAutocompleteModel } from "../util/loadAutocompleteModel";
+import { startLocalOllama } from "core/util/ollamaHelper";
+import type { IDE } from "core";
+
+const Diff = require("diff");
+
+interface DiffType {
+  count: number;
+  added: boolean;
+  removed: boolean;
+  value: string;
+}
 
 interface VsCodeCompletionInput {
   document: vscode.TextDocument;
@@ -33,8 +45,10 @@ export class ContinueCompletionProvider
 {
   private onError(e: any) {
     const options = ["Documentation"];
-    if (e.message.includes("https://ollama.ai")) {
+    if (e.message.includes("Ollama may not be installed")) {
       options.push("Download Ollama");
+    } else if (e.message.includes("Ollama may not be running")) {
+      options.unshift("Start Ollama"); // We want "Start" to be the default choice
     }
 
     // if (e.message.includes("Please sign in with GitHub")) {
@@ -56,11 +70,14 @@ export class ContinueCompletionProvider
         );
       } else if (val === "Download Ollama") {
         vscode.env.openExternal(vscode.Uri.parse("https://ollama.ai/download"));
+      } else if (val == "Start Ollama") {
+        startLocalOllama(this.ide);
       }
     });
   }
 
   private completionProvider: CompletionProvider;
+  private recentlyVisitedRanges: RecentlyVisitedRangesService;
   private recentlyEditedTracker = new RecentlyEditedTracker();
 
   constructor(
@@ -76,12 +93,7 @@ export class ContinueCompletionProvider
       this.onError.bind(this),
       getDefinitionsFromLsp,
     );
-
-    vscode.workspace.onDidChangeTextDocument((event) => {
-      if (event.document.uri.fsPath === this._lastShownCompletion?.filepath) {
-        // console.log("updating completion");
-      }
-    });
+    this.recentlyVisitedRanges = new RecentlyVisitedRangesService(ide);
   }
 
   _lastShownCompletion: AutocompleteOutcome | undefined;
@@ -101,6 +113,16 @@ export class ContinueCompletionProvider
       return null;
     }
 
+    if (document.uri.scheme === "vscode-scm") {
+      return null;
+    }
+
+    // Don't autocomplete with multi-cursor
+    const editor = vscode.window.activeTextEditor;
+    if (editor && editor.selections.length > 1) {
+      return null;
+    }
+
     // If the text at the range isn't a prefix of the intellisense text,
     // no completion will be displayed, regardless of what we return
     if (
@@ -113,30 +135,6 @@ export class ContinueCompletionProvider
     }
 
     let injectDetails: string | undefined = undefined;
-    // Here we could use the details from the intellisense dropdown
-    // and place them just above the line being typed but because
-    // we don't have control over the formatting of the details and
-    // they could be especially long, not doing this for now
-    // if (context.selectedCompletionInfo) {
-    //   const results: any = await vscode.commands.executeCommand(
-    //     "vscode.executeCompletionItemProvider",
-    //     document.uri,
-    //     position,
-    //     null,
-    //     1,
-    //   );
-    //   if (results?.items) {
-    //     injectDetails = results.items?.[0]?.detail;
-    //     // const label = results?.items?.[0].label;
-    //     // const workspaceSymbols = (
-    //     //   (await vscode.commands.executeCommand(
-    //     //     "vscode.executeWorkspaceSymbolProvider",
-    //     //     label,
-    //     //   )) as any
-    //     // ).filter((symbol: any) => symbol.name === label);
-    //     // console.log(label, "=>", workspaceSymbols);
-    //   }
-    // }
 
     // The first time intellisense dropdown shows up, and the first choice is selected,
     // we should not consider this. Only once user explicitly moves down the list
@@ -163,7 +161,9 @@ export class ContinueCompletionProvider
         const notebook = vscode.workspace.notebookDocuments.find((notebook) =>
           notebook
             .getCells()
-            .some((cell) => cell.document.uri === document.uri),
+            .some((cell) =>
+              URI.equal(cell.document.uri.toString(), document.uri.toString()),
+            ),
         );
         if (notebook) {
           const cells = notebook.getCells();
@@ -178,7 +178,9 @@ export class ContinueCompletionProvider
             })
             .join("\n\n");
           for (const cell of cells) {
-            if (cell.document.uri === document.uri) {
+            if (
+              URI.equal(cell.document.uri.toString(), document.uri.toString())
+            ) {
               break;
             } else {
               pos.line += cell.document.getText().split("\n").length + 1;
@@ -186,20 +188,27 @@ export class ContinueCompletionProvider
           }
         }
       }
+
+      // Manually pass file contents for unsaved, untitled files
+      if (document.isUntitled) {
+        manuallyPassFileContents = document.getText();
+      }
+
       // Handle commit message input box
       let manuallyPassPrefix: string | undefined = undefined;
 
       const input: AutocompleteInput = {
-        completionId: uuidv4(),
-        filepath: document.uri.fsPath,
         pos,
-        recentlyEditedFiles: [],
-        recentlyEditedRanges:
-          await this.recentlyEditedTracker.getRecentlyEditedRanges(),
         manuallyPassFileContents,
         manuallyPassPrefix,
         selectedCompletionInfo,
         injectDetails,
+        isUntitledFile: document.isUntitled,
+        completionId: uuidv4(),
+        filepath: document.uri.toString(),
+        recentlyVisitedRanges: this.recentlyVisitedRanges.getSnippets(),
+        recentlyEditedRanges:
+          await this.recentlyEditedTracker.getRecentlyEditedRanges(),
       };
 
       setupStatusBar(undefined, true);
@@ -245,13 +254,67 @@ export class ContinueCompletionProvider
 
       // Construct the range/text to show
       const startPos = selectedCompletionInfo?.range.start ?? position;
-      const completionRange = new vscode.Range(
-        startPos,
-        startPos.translate(0, outcome.completion.length),
-      );
+      let range = new vscode.Range(startPos, startPos);
+      let completionText = outcome.completion;
+      const isSingleLineCompletion = outcome.completion.split("\n").length <= 1;
+
+      if (isSingleLineCompletion) {
+        const lastLineOfCompletionText = completionText.split("\n").pop();
+        const currentText = document
+          .lineAt(startPos)
+          .text.substring(startPos.character);
+        const diffs: DiffType[] = Diff.diffWords(
+          currentText,
+          lastLineOfCompletionText,
+        );
+
+        if (diffPatternMatches(diffs, ["+"])) {
+          // Just insert, we're already at the end of the line
+        } else if (
+          diffPatternMatches(diffs, ["+", "="]) ||
+          diffPatternMatches(diffs, ["+", "=", "+"])
+        ) {
+          // The model repeated the text after the cursor to the end of the line
+          range = new vscode.Range(
+            startPos,
+            document.lineAt(startPos).range.end,
+          );
+        } else if (
+          diffPatternMatches(diffs, ["+", "-"]) ||
+          diffPatternMatches(diffs, ["-", "+"])
+        ) {
+          // We are midline and the model just inserted without repeating to the end of the line
+          // We want to move the cursor to the end of the line
+          // range = new vscode.Range(
+          //   startPos,
+          //   document.lineAt(startPos).range.end,
+          // );
+          // // Find the last removed part of the diff
+          // const lastRemovedIndex = findLastIndex(
+          //   diffs,
+          //   (diff) => diff.removed === true,
+          // );
+          // const lastRemovedContent = diffs[lastRemovedIndex].value;
+          // completionText += lastRemovedContent;
+        } else {
+          // Diff is too complicated, just insert the first added part of the diff
+          // This is the safe way to ensure that it is displayed
+          if (diffs[0]?.added) {
+            completionText = diffs[0].value;
+          } else {
+            // If the first part of the diff isn't an insertion, then the model is
+            // probably rewriting other parts of the line
+            return undefined;
+          }
+        }
+      } else {
+        // Extend the range to the end of the line for multiline completions
+        range = new vscode.Range(startPos, document.lineAt(startPos).range.end);
+      }
+
       const completionItem = new vscode.InlineCompletionItem(
-        outcome.completion,
-        completionRange,
+        completionText,
+        range,
         {
           title: "Log Autocomplete Outcome",
           command: "ssidevbuddy.logAutocompleteOutcome",
@@ -289,4 +352,27 @@ export class ContinueCompletionProvider
 
     return true;
   }
+}
+
+type DiffPartType = "+" | "-" | "=";
+
+function diffPatternMatches(
+  diffs: DiffType[],
+  pattern: DiffPartType[],
+): boolean {
+  if (diffs.length !== pattern.length) {
+    return false;
+  }
+
+  for (let i = 0; i < diffs.length; i++) {
+    const diff = diffs[i];
+    const diffPartType: DiffPartType =
+      !diff.added && !diff.removed ? "=" : diff.added ? "+" : "-";
+
+    if (diffPartType !== pattern[i]) {
+      return false;
+    }
+  }
+
+  return true;
 }

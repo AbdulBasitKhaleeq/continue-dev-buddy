@@ -1,28 +1,22 @@
 import { createAsyncThunk, unwrapResult } from "@reduxjs/toolkit";
 import { JSONContent } from "@tiptap/core";
-import {
-  ChatHistoryItem,
-  ChatMessage,
-  InputModifiers,
-  MessageContent,
-  SlashCommandDescription,
-} from "core";
+import { InputModifiers, MessageContent, SlashCommandDescription } from "core";
 import { constructMessages } from "core/llm/constructMessages";
 import { renderChatMessage } from "core/util/messageContent";
 import posthog from "posthog-js";
+import { v4 as uuidv4 } from "uuid";
+import { selectDefaultModel } from "../slices/configSlice";
 import {
-  initNewActiveMessage,
-  resubmitAtIndex,
-  setCurCheckpointIndex,
-  setMessageAtIndex,
+  submitEditorAndInitAtIndex,
+  updateHistoryItemAtIndex,
 } from "../slices/sessionSlice";
 import { ThunkApiType } from "../store";
 import { gatherContext } from "./gatherContext";
-import { handleErrors } from "./handleErrors";
 import { resetStateForNewMessage } from "./resetStateForNewMessage";
 import { streamNormalInput } from "./streamNormalInput";
 import { streamSlashCommand } from "./streamSlashCommand";
-import { selectDefaultModel } from "../slices/configSlice";
+import { streamThunkWrapper } from "./streamThunkWrapper";
+import { updateFileSymbolsFromFiles } from "./updateFileSymbols";
 
 const getSlashCommandForInput = (
   input: MessageContent,
@@ -66,23 +60,19 @@ export const streamResponseThunk = createAsyncThunk<
     { dispatch, extra, getState },
   ) => {
     await dispatch(
-      handleErrors(async () => {
+      streamThunkWrapper(async () => {
         const state = getState();
+        const useTools = state.ui.useTools;
         const defaultModel = selectDefaultModel(state);
         const slashCommands = state.config.config.slashCommands || [];
         const inputIndex = index ?? state.session.history.length;
 
-        if (typeof index === "number") {
-          dispatch(resubmitAtIndex({ index, editorState }));
-        } else {
-          dispatch(initNewActiveMessage({ editorState }));
+        if (!defaultModel) {
+          throw new Error("No chat model selected");
         }
 
+        dispatch(submitEditorAndInitAtIndex({ index, editorState }));
         resetStateForNewMessage();
-
-        if (index) {
-          dispatch(setCurCheckpointIndex(Math.floor(index / 2)));
-        }
 
         const result = await dispatch(
           gatherContext({
@@ -94,28 +84,37 @@ export const streamResponseThunk = createAsyncThunk<
         const unwrapped = unwrapResult(result);
         const { selectedContextItems, selectedCode, content } = unwrapped;
 
-        // Add the message to the history
-        const message: ChatMessage = {
-          role: "user",
-          content,
-        };
-        const historyItem: ChatHistoryItem = {
-          message,
-          contextItems: selectedContextItems,
-          editorState,
-        };
+        // symbols for both context items AND selected codeblocks
+        const filesForSymbols = [
+          ...selectedContextItems
+            .filter((item) => item.uri?.type === "file" && item?.uri?.value)
+            .map((item) => item.uri!.value),
+          ...selectedCode.map((rif) => rif.filepath),
+        ];
+        dispatch(updateFileSymbolsFromFiles(filesForSymbols));
 
         dispatch(
-          setMessageAtIndex({
-            message,
+          updateHistoryItemAtIndex({
             index: inputIndex,
-            contextItems: selectedContextItems,
+            updates: {
+              message: {
+                role: "user",
+                content,
+                id: uuidv4(),
+              },
+              contextItems: selectedContextItems,
+            },
           }),
         );
 
         // Construct messages from updated history
         const updatedHistory = getState().session.history;
-        const messages = constructMessages(updatedHistory, defaultModel.model);
+        const messages = constructMessages(
+          [...updatedHistory],
+          defaultModel.model,
+          defaultModel.provider,
+          useTools,
+        );
 
         posthog.capture("step run", {
           step_name: "User Input",
@@ -127,10 +126,9 @@ export const streamResponseThunk = createAsyncThunk<
         let commandAndInput = getSlashCommandForInput(content, slashCommands);
 
         if (!commandAndInput) {
-          await dispatch(streamNormalInput(messages));
+          unwrapResult(await dispatch(streamNormalInput(messages)));
         } else {
           const [slashCommand, commandInput] = commandAndInput;
-          let updatedContextItems = [];
           posthog.capture("step run", {
             step_name: slashCommand.name,
             params: {},
@@ -147,7 +145,7 @@ export const streamResponseThunk = createAsyncThunk<
               input: commandInput,
               historyIndex: inputIndex,
               selectedCode,
-              contextItems: updatedContextItems,
+              contextItems: [],
             }),
           );
         }

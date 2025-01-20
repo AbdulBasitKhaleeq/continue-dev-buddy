@@ -1,7 +1,9 @@
 import { IDE } from "../../index";
+import { findUriInDirs } from "../../util/uri";
 import { ContextRetrievalService } from "../context/ContextRetrievalService";
 import { GetLspDefinitionsFunction } from "../types";
 import { HelperVars } from "../util/HelperVars";
+
 import {
   AutocompleteClipboardSnippet,
   AutocompleteCodeSnippet,
@@ -14,6 +16,7 @@ export interface SnippetPayload {
   importDefinitionSnippets: AutocompleteCodeSnippet[];
   ideSnippets: AutocompleteCodeSnippet[];
   recentlyEditedRangeSnippets: AutocompleteCodeSnippet[];
+  recentlyVisitedRangesSnippets: AutocompleteCodeSnippet[];
   diffSnippets: AutocompleteDiffSnippet[];
   clipboardSnippets: AutocompleteClipboardSnippet[];
 }
@@ -45,7 +48,9 @@ async function getIdeSnippets(
     const workspaceDirs = await ide.getWorkspaceDirs();
 
     return ideSnippets.filter((snippet) =>
-      workspaceDirs.some((dir) => snippet.filepath.startsWith(dir)),
+      workspaceDirs.some(
+        (dir) => !!findUriInDirs(snippet.filepath, [dir]).foundInDir,
+      ),
     );
   }
 
@@ -132,5 +137,6 @@ export const getAllSnippets = async ({
     recentlyEditedRangeSnippets,
     diffSnippets,
     clipboardSnippets,
+    recentlyVisitedRangesSnippets: helper.input.recentlyVisitedRanges,
   };
 };

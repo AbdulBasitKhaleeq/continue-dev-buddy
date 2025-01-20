@@ -1,97 +1,97 @@
+import { ConfigResult, ConfigValidationError } from "@continuedev/config-yaml";
 import {
   BrowserSerializedContinueConfig,
   ContinueConfig,
   IContextProvider,
 } from "../index.js";
 
-import { ConfigResult, finalToBrowserConfig } from "./load.js";
+import { finalToBrowserConfig } from "./load.js";
 import { IProfileLoader } from "./profile/IProfileLoader.js";
 
 export interface ProfileDescription {
   title: string;
   id: string;
+  errors: ConfigValidationError[] | undefined;
 }
 
 export class ProfileLifecycleManager {
-  private savedConfig: ContinueConfig | undefined;
-  private savedBrowserConfig?: BrowserSerializedContinueConfig;
-  private pendingConfigPromise?: Promise<ContinueConfig>;
+  private savedConfigResult: ConfigResult<ContinueConfig> | undefined;
+  private savedBrowserConfigResult?: ConfigResult<BrowserSerializedContinueConfig>;
+  private pendingConfigPromise?: Promise<ConfigResult<ContinueConfig>>;
 
   constructor(private readonly profileLoader: IProfileLoader) {}
 
-  get profileId() {
-    return this.profileLoader.profileId;
-  }
-
-  get profileTitle() {
-    return this.profileLoader.profileTitle;
-  }
-
   get profileDescription(): ProfileDescription {
-    return {
-      title: this.profileTitle,
-      id: this.profileId,
-    };
+    return this.profileLoader.description;
   }
 
   clearConfig() {
-    this.savedConfig = undefined;
-    this.savedBrowserConfig = undefined;
+    this.savedConfigResult = undefined;
+    this.savedBrowserConfigResult = undefined;
     this.pendingConfigPromise = undefined;
   }
 
   // Clear saved config and reload
   async reloadConfig(): Promise<ConfigResult<ContinueConfig>> {
-    this.savedConfig = undefined;
-    this.savedBrowserConfig = undefined;
+    this.savedConfigResult = undefined;
+    this.savedBrowserConfigResult = undefined;
     this.pendingConfigPromise = undefined;
 
-    return this.profileLoader.doLoadConfig();
+    return this.loadConfig([], true);
   }
 
   async loadConfig(
     additionalContextProviders: IContextProvider[],
-  ): Promise<ContinueConfig> {
+    forceReload: boolean = false,
+  ): Promise<ConfigResult<ContinueConfig>> {
     // If we already have a config, return it
-    if (this.savedConfig) {
-      return this.savedConfig;
-    } else if (this.pendingConfigPromise) {
-      return this.pendingConfigPromise;
+    if (!forceReload) {
+      if (this.savedConfigResult) {
+        return this.savedConfigResult;
+      } else if (this.pendingConfigPromise) {
+        return this.pendingConfigPromise;
+      }
     }
 
     // Set pending config promise
     this.pendingConfigPromise = new Promise(async (resolve, reject) => {
-      const { config: newConfig, errors } =
-        await this.profileLoader.doLoadConfig();
+      const result = await this.profileLoader.doLoadConfig();
 
-      if (newConfig) {
+      if (result.config) {
         // Add registered context providers
-        newConfig.contextProviders = (newConfig.contextProviders ?? []).concat(
-          additionalContextProviders,
-        );
-
-        this.savedConfig = newConfig;
-        resolve(newConfig);
-      } else if (errors) {
-        reject(
-          `Error in config.json: ${errors.map((item) => item.message).join(" | ")}`,
-        );
+        result.config.contextProviders = (
+          result.config.contextProviders ?? []
+        ).concat(additionalContextProviders);
       }
+
+      this.savedConfigResult = result;
+      resolve(result);
     });
 
     // Wait for the config promise to resolve
-    this.savedConfig = await this.pendingConfigPromise;
+    this.savedConfigResult = await this.pendingConfigPromise;
     this.pendingConfigPromise = undefined;
-    return this.savedConfig;
+    return this.savedConfigResult;
   }
 
   async getSerializedConfig(
     additionalContextProviders: IContextProvider[],
-  ): Promise<BrowserSerializedContinueConfig> {
-    if (!this.savedBrowserConfig) {
-      const continueConfig = await this.loadConfig(additionalContextProviders);
-      this.savedBrowserConfig = finalToBrowserConfig(continueConfig);
+  ): Promise<ConfigResult<BrowserSerializedContinueConfig>> {
+    if (this.savedBrowserConfigResult) {
+      return this.savedBrowserConfigResult;
+    } else {
+      const result = await this.loadConfig(additionalContextProviders);
+      if (!result.config) {
+        return {
+          ...result,
+          config: undefined,
+        };
+      }
+      const serializedConfig = finalToBrowserConfig(result.config);
+      return {
+        ...result,
+        config: serializedConfig,
+      };
     }
-    return this.savedBrowserConfig;
   }
 }

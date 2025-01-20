@@ -6,6 +6,7 @@ import { IDE, IndexingProgressUpdate, IndexTag } from "../index.js";
 import { extractMinimalStackTraceInfo } from "../util/extractMinimalStackTraceInfo.js";
 import { getIndexSqlitePath, getLanceDbPath } from "../util/paths.js";
 
+import { findUriInDirs, getUriPathBasename } from "../util/uri.js";
 import { ChunkCodebaseIndex } from "./chunk/ChunkCodebaseIndex.js";
 import { CodeSnippetsCodebaseIndex } from "./CodeSnippetsIndex.js";
 import { FullTextSearchCodebaseIndex } from "./FullTextSearchCodebaseIndex.js";
@@ -17,7 +18,6 @@ import {
   RefreshIndexResults,
 } from "./types.js";
 import { walkDirAsync } from "./walkDir.js";
-import { getBasename } from "../util/index.js";
 
 export class PauseToken {
   constructor(private _paused: boolean) {}
@@ -75,20 +75,20 @@ export class CodebaseIndexer {
   }
 
   protected async getIndexesToBuild(): Promise<CodebaseIndex[]> {
-    const config = await this.configHandler.loadConfig();
-    const pathSep = await this.ide.pathSep();
+    const { config } = await this.configHandler.loadConfig();
+    if (!config) {
+      return [];
+    }
 
     const indexes = [
       new ChunkCodebaseIndex(
         this.ide.readFile.bind(this.ide),
-        pathSep,
         this.continueServerClient,
-        config.embeddingsProvider.maxChunkSize,
+        config.embeddingsProvider.maxEmbeddingChunkSize,
       ), // Chunking must come first
       new LanceDbIndex(
         config.embeddingsProvider,
         this.ide.readFile.bind(this.ide),
-        pathSep,
         this.continueServerClient,
       ),
       new FullTextSearchCodebaseIndex(),
@@ -98,23 +98,26 @@ export class CodebaseIndexer {
     return indexes;
   }
 
-  public async refreshFile(file: string): Promise<void> {
+  public async refreshFile(
+    file: string,
+    workspaceDirs: string[],
+  ): Promise<void> {
     if (this.pauseToken.paused) {
       // NOTE: by returning here, there is a chance that while paused a file is modified and
       // then after unpausing the file is not reindexed
       return;
     }
-    const workspaceDir = await this.getWorkspaceDir(file);
-    if (!workspaceDir) {
+    const { foundInDir } = findUriInDirs(file, workspaceDirs);
+    if (!foundInDir) {
       return;
     }
-    const branch = await this.ide.getBranch(workspaceDir);
-    const repoName = await this.ide.getRepoName(workspaceDir);
+    const branch = await this.ide.getBranch(foundInDir);
+    const repoName = await this.ide.getRepoName(foundInDir);
     const indexesToBuild = await this.getIndexesToBuild();
-    const stats = await this.ide.getLastModified([file]);
+    const stats = await this.ide.getFileStats([file]);
     for (const index of indexesToBuild) {
       const tag = {
-        directory: workspaceDir,
+        directory: foundInDir,
         branch,
         artifactId: index.artifactId,
       };
@@ -145,9 +148,7 @@ export class CodebaseIndexer {
     }
   }
 
-  async *refreshFiles(
-    files: string[],
-  ): AsyncGenerator<IndexingProgressUpdate> {
+  async *refreshFiles(files: string[]): AsyncGenerator<IndexingProgressUpdate> {
     let progress = 0;
     if (files.length === 0) {
       yield {
@@ -157,6 +158,8 @@ export class CodebaseIndexer {
       };
     }
 
+    const workspaceDirs = await this.ide.getWorkspaceDirs();
+
     const progressPer = 1 / files.length;
     try {
       for (const file of files) {
@@ -165,7 +168,7 @@ export class CodebaseIndexer {
           desc: `Indexing file ${file}...`,
           status: "indexing",
         };
-        await this.refreshFile(file);
+        await this.refreshFile(file, workspaceDirs);
 
         progress += progressPer;
 
@@ -192,15 +195,15 @@ export class CodebaseIndexer {
 
     if (dirs.length === 0) {
       yield {
-        progress,
+        progress: 1,
         desc: "Nothing to index",
-        status: "disabled",
+        status: "done",
       };
       return;
     }
 
-    const config = await this.configHandler.loadConfig();
-    if (config.disableIndexing) {
+    const { config } = await this.configHandler.loadConfig();
+    if (config?.disableIndexing) {
       yield {
         progress,
         desc: "Indexing is disabled in config.json",
@@ -227,7 +230,7 @@ export class CodebaseIndexer {
     const beginTime = Date.now();
 
     for (const directory of dirs) {
-      const dirBasename = await this.basename(directory);
+      const dirBasename = getUriPathBasename(directory);
       yield {
         progress,
         desc: `Discovering files in ${dirBasename}...`,
@@ -238,9 +241,9 @@ export class CodebaseIndexer {
         directoryFiles.push(p);
         if (abortSignal.aborted) {
           yield {
-            progress: 1,
+            progress: 0,
             desc: "Indexing cancelled",
-            status: "disabled",
+            status: "cancelled",
           };
           return;
         }
@@ -263,9 +266,9 @@ export class CodebaseIndexer {
           // Handle pausing in this loop because it's the only one really taking time
           if (abortSignal.aborted) {
             yield {
-              progress: 1,
+              progress: 0,
               desc: "Indexing cancelled",
-              status: "disabled",
+              status: "cancelled",
             };
             return;
           }
@@ -390,7 +393,7 @@ export class CodebaseIndexer {
     branch: string,
     repoName: string | undefined,
   ): AsyncGenerator<IndexingProgressUpdate> {
-    const stats = await this.ide.getLastModified(files);
+    const stats = await this.ide.getFileStats(files);
     const indexesToBuild = await this.getIndexesToBuild();
     let completedIndexCount = 0;
     let progress = 0;
@@ -448,21 +451,5 @@ export class CodebaseIndexer {
       await markComplete(lastUpdated, IndexResultType.UpdateLastUpdated);
       completedIndexCount += 1;
     }
-  }
-
-  private async getWorkspaceDir(filepath: string): Promise<string | undefined> {
-    const workspaceDirs = await this.ide.getWorkspaceDirs();
-    for (const workspaceDir of workspaceDirs) {
-      if (filepath.startsWith(workspaceDir)) {
-        return workspaceDir;
-      }
-    }
-    return undefined;
-  }
-
-  private async basename(filepath: string): Promise<string> {
-    const pathSep = await this.ide.pathSep();
-    const path = filepath.split(pathSep);
-    return path[path.length - 1];
   }
 }

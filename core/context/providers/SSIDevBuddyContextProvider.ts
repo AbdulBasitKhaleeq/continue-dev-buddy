@@ -9,8 +9,8 @@ import { BaseContextProvider } from "../index.js";
 class SSIDevBuddyContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
     title: "ssi-dev-buddy-context",
-    displayTitle: "SSI Dev Buddy Context",
-    description: "Retrieve a context item from SSI Dev Buddy",
+    displayTitle: "SSI DevBuddy Context",
+    description: "Retrieve a context item from SSI DevBuddy",
     type: "normal",
     renderInlineAs: "",
   };
@@ -18,10 +18,10 @@ class SSIDevBuddyContextProvider extends BaseContextProvider {
   override get description(): ContextProviderDescription {
     return {
       title: this.options.title || "ssi-dev-buddy-context",
-      displayTitle: this.options.displayTitle || "SSI Dev Buddy Context",
+      displayTitle: this.options.displayTitle || "SSI DevBuddy Context",
       description:
         this.options.description ||
-        "Retrieve a context item from SSI Dev Buddy",
+        "Retrieve a context item from SSI DevBuddy",
       type: "normal",
     };
   }
@@ -49,9 +49,9 @@ class SSIDevBuddyContextProvider extends BaseContextProvider {
 
     try {
       const createContextItem = (item: any) => ({
-        description: item.description ?? "SSI Dev Buddy Context Item",
+        description: item.description ?? "SSI DevBuddy Context Item",
         content: item.content ?? "",
-        name: item.name ?? this.options.title ?? "SSI Dev Buddy Context",
+        name: item.name ?? this.options.title ?? "SSI DevBuddy Context",
       });
 
       return Array.isArray(json)
@@ -59,7 +59,7 @@ class SSIDevBuddyContextProvider extends BaseContextProvider {
         : [createContextItem(json)];
     } catch (e) {
       console.warn(
-        `Failed to parse response from SSI Dev Buddy context provider.\nError:\n${e}\nResponse from server:\n`,
+        `Failed to parse response from SSI DevBuddy context provider.\nError:\n${e}\nResponse from server:\n`,
         json,
       );
       return [];

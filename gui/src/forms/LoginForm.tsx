@@ -33,7 +33,7 @@ function LoginForm() {
     <FormProvider {...formMethods}>
       <form onSubmit={formMethods.handleSubmit(onSubmit)}>
         <div className="mx-auto max-w-md p-6">
-          <h1 className="mb-0 text-center text-2xl">Login SSI Dev Buddy</h1>
+          <h1 className="mb-0 text-center text-2xl">Login SSI DevBuddy</h1>
 
           <div className="my-8 flex flex-col gap-6">
             <div>

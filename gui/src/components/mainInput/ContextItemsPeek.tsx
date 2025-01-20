@@ -5,15 +5,15 @@ import {
 } from "@heroicons/react/24/outline";
 import { ContextItemWithId } from "core";
 import { ctxItemToRifWithContents } from "core/commands/util";
-import { getBasename } from "core/util";
+import { getUriPathBasename } from "core/util/uri";
 import { useContext, useMemo, useState } from "react";
 import { AnimatedEllipsis, lightGray, vscBackground } from "..";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
+import { useAppSelector } from "../../redux/hooks";
+import { selectIsGatheringContext } from "../../redux/slices/sessionSlice";
 import FileIcon from "../FileIcon";
 import SafeImg from "../SafeImg";
 import { getIconFromDropdownItem } from "./MentionList";
-import { useAppSelector } from "../../redux/hooks";
-import { selectIsGatheringContext } from "../../redux/slices/sessionSlice";
 
 interface ContextItemsPeekProps {
   contextItems?: ContextItemWithId[];
@@ -29,10 +29,14 @@ function ContextItemsPeekItem({ contextItem }: ContextItemsPeekItemProps) {
   const isUrl = contextItem.uri?.type === "url";
 
   function openContextItem() {
-    const { uri, name, description, content } = contextItem;
+    const { uri, name, content } = contextItem;
 
     if (isUrl) {
-      ideMessenger.post("openUrl", uri.value);
+      if (uri?.value) {
+        ideMessenger.post("openUrl", uri.value);
+      } else {
+        console.error("Couldn't open url", uri);
+      }
     } else if (uri) {
       const isRangeInFile = name.includes(" (") && name.endsWith(")");
 
@@ -44,7 +48,7 @@ function ContextItemsPeekItem({ contextItem }: ContextItemsPeekItemProps) {
           rif.range.end.line,
         );
       } else {
-        ideMessenger.ide.openFile(description);
+        ideMessenger.ide.openFile(uri.value);
       }
     } else {
       ideMessenger.ide.showVirtualFile(name, content);
@@ -67,7 +71,8 @@ function ContextItemsPeekItem({ contextItem }: ContextItemsPeekItemProps) {
     }
 
     // Heuristic to check if it's a file
-    const shouldShowFileIcon = contextItem.content.includes("```");
+    const shouldShowFileIcon =
+      contextItem.content.includes("```") || contextItem.uri?.type === "file";
 
     if (shouldShowFileIcon) {
       return (
@@ -102,6 +107,7 @@ function ContextItemsPeekItem({ contextItem }: ContextItemsPeekItemProps) {
     <div
       onClick={openContextItem}
       className="group mr-2 flex cursor-pointer items-center overflow-hidden text-ellipsis whitespace-nowrap rounded px-1.5 py-1 text-xs hover:bg-white/10"
+      data-testid="context-items-peek-item"
     >
       <div className="flex w-full items-center">
         {getContextItemIcon()}
@@ -115,7 +121,7 @@ function ContextItemsPeekItem({ contextItem }: ContextItemsPeekItemProps) {
             className={`min-w-0 flex-1 overflow-hidden truncate whitespace-nowrap text-xs text-gray-400 ${isUrl ? "hover:underline" : ""}`}
           >
             {contextItem.uri?.type === "file"
-              ? getBasename(contextItem.description)
+              ? getUriPathBasename(contextItem.description)
               : contextItem.description}
           </div>
         </div>
@@ -156,6 +162,7 @@ function ContextItemsPeek({
       <div
         className="flex cursor-pointer items-center justify-start text-xs text-gray-300"
         onClick={() => setOpen((prev) => !prev)}
+        data-testid="context-items-peek"
       >
         <div className="relative mr-1 h-4 w-4">
           <ChevronRightIcon
@@ -172,7 +179,7 @@ function ContextItemsPeek({
         <span className="ml-1 text-xs text-gray-400 transition-colors duration-200">
           {isGatheringContext ? (
             <>
-              Gathering context...
+              Gathering context
               <AnimatedEllipsis />
             </>
           ) : (

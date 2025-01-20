@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as os from "os";
-import { pathToFileURL } from "url";
 import * as path from "path";
+
 import * as JSONC from "comment-json";
 import dotenv from "dotenv";
 
@@ -13,6 +13,10 @@ dotenv.config();
 
 const CONTINUE_GLOBAL_DIR =
   process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".ssidevbuddy");
+
+// export const DEFAULT_CONFIG_TS_CONTENTS = `import { Config } from "./types"\n\nexport function modifyConfig(config: Config): Config {
+//   return config;
+// }`;
 
 export const DEFAULT_CONFIG_TS_CONTENTS = `export function modifyConfig(config: Config): Config {
   return config;
@@ -41,9 +45,6 @@ export function getGlobalContinueIgnorePath(): string {
   return continueIgnorePath;
 }
 
-/*
-  Deprecated, replace with getContinueGlobalUri where possible
-*/
 export function getContinueGlobalPath(): string {
   // This is ~/.continue on mac/linux
   const continuePath = CONTINUE_GLOBAL_DIR;
@@ -51,10 +52,6 @@ export function getContinueGlobalPath(): string {
     fs.mkdirSync(continuePath);
   }
   return continuePath;
-}
-
-export function getContinueGlobalUri(): string {
-  return pathToFileURL(CONTINUE_GLOBAL_DIR).href;
 }
 
 export function getSessionsFolderPath(): string {
@@ -101,8 +98,16 @@ export function getConfigJsonPath(ideType: IdeType = "vscode"): string {
   return p;
 }
 
-export function getConfigJsonUri(): string {
-  return getContinueGlobalUri() + "/config.json";
+export function getConfigYamlPath(ideType: IdeType): string {
+  const p = path.join(getContinueGlobalPath(), "config.yaml");
+  // if (!fs.existsSync(p)) {
+  //   if (ideType === "jetbrains") {
+  //     fs.writeFileSync(p, YAML.stringify(defaultConfigYamlJetBrains));
+  //   } else {
+  //     fs.writeFileSync(p, YAML.stringify(defaultConfigYaml));
+  //   }
+  // }
+  return p;
 }
 
 export function getConfigTsPath(): string {
@@ -296,9 +301,16 @@ export function getPathToRemoteConfig(remoteConfigServerUrl: string): string {
   return dir;
 }
 
-export function internalBetaPathExists(): boolean {
-  const sPath = path.join(getContinueGlobalPath(), ".internal_beta");
+export function usePlatformPathExists(): boolean {
+  const sPath = path.join(getContinueGlobalPath(), ".use_platform");
   return fs.existsSync(sPath);
+}
+
+export function readUsePlatform(): string | undefined {
+  const sPath = path.join(getContinueGlobalPath(), ".use_platform");
+  if (fs.existsSync(sPath)) {
+    return fs.readFileSync(sPath, "utf8");
+  }
 }
 
 export function getConfigJsonPathForRemote(
@@ -386,4 +398,14 @@ export function setupInitialDotContinueDirectory() {
       fs.writeFileSync(devDataPath, "");
     }
   });
+}
+
+export function getDiffsDirectoryPath(): string {
+  const diffsPath = path.join(getContinueGlobalPath(), ".diffs"); // .replace(/^C:/, "c:"); ??
+  if (!fs.existsSync(diffsPath)) {
+    fs.mkdirSync(diffsPath, {
+      recursive: true,
+    });
+  }
+  return diffsPath;
 }

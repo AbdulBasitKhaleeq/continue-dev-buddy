@@ -1,9 +1,18 @@
-import { ChatMessage, CompletionOptions, ModelProvider } from "../../index.js";
+import { ChatMessage, CompletionOptions, LLMOptions } from "../../index.js";
 import { BaseLLM } from "../index.js";
 
-class Mock extends BaseLLM {
+type MockMessage = ChatMessage | "REPEAT_LAST_MSG" | "REPEAT_SYSTEM_MSG";
+
+class MockLLM extends BaseLLM {
   public completion: string = "Test Completion";
-  static providerName: ModelProvider = "mock";
+  public chatStreams: MockMessage[][] | undefined;
+  static providerName = "mock";
+
+  constructor(options: LLMOptions) {
+    super(options);
+    this.templateMessages = undefined;
+    this.chatStreams = options.requestOptions?.extraBodyProperties?.chatStream;
+  }
 
   protected async *_streamComplete(
     prompt: string,
@@ -18,6 +27,36 @@ class Mock extends BaseLLM {
     signal: AbortSignal,
     options: CompletionOptions,
   ): AsyncGenerator<ChatMessage> {
+    if (this.chatStreams) {
+      const chatStream =
+        this.chatStreams?.[
+          messages.filter((m) => m.role === "user" || m.role === "tool")
+            .length - 1
+        ];
+      if (chatStream) {
+        for (const message of chatStream) {
+          switch (message) {
+            case "REPEAT_LAST_MSG":
+              yield {
+                role: "assistant",
+                content: messages[messages.length - 1].content,
+              };
+              break;
+            case "REPEAT_SYSTEM_MSG":
+              yield {
+                role: "assistant",
+                content:
+                  messages.find((m) => m.role === "system")?.content || "",
+              };
+              break;
+            default:
+              yield message;
+          }
+        }
+      }
+      return;
+    }
+
     for (const char of this.completion) {
       yield {
         role: "assistant",
@@ -27,4 +66,4 @@ class Mock extends BaseLLM {
   }
 }
 
-export default Mock;
+export default MockLLM;

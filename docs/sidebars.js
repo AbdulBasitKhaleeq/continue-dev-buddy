@@ -110,6 +110,7 @@ const sidebars = {
     },
     "customize/context-providers",
     "customize/slash-commands",
+    "customize/tools",
     "customize/development-data",
     {
       type: "category",
@@ -137,6 +138,16 @@ const sidebars = {
       label: "Reference",
       href: "/reference",
     },
+    // {
+    //   type: "link",
+    //   label: "YAML Reference",
+    //   href: "/yaml-reference",
+    // },
+    // {
+    //   type: "link",
+    //   label: "YAML Migration",
+    //   href: "/yaml-migration",
+    // },
   ],
 };
 

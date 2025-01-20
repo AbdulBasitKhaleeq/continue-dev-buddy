@@ -1,17 +1,17 @@
-import { createAsyncThunk } from "@reduxjs/toolkit";
+import { createAsyncThunk, unwrapResult } from "@reduxjs/toolkit";
 import { ChatMessage, ContextItem } from "core";
 import { constructMessages } from "core/llm/constructMessages";
 import { renderContextItems } from "core/util/messageContent";
+import { selectDefaultModel } from "../slices/configSlice";
 import {
   addContextItemsAtIndex,
   setActive,
   streamUpdate,
 } from "../slices/sessionSlice";
 import { ThunkApiType } from "../store";
-import { handleErrors } from "./handleErrors";
 import { resetStateForNewMessage } from "./resetStateForNewMessage";
 import { streamNormalInput } from "./streamNormalInput";
-import { selectDefaultModel } from "../slices/configSlice";
+import { streamThunkWrapper } from "./streamThunkWrapper";
 
 export const streamResponseAfterToolCall = createAsyncThunk<
   void,
@@ -24,10 +24,16 @@ export const streamResponseAfterToolCall = createAsyncThunk<
   "chat/streamAfterToolCall",
   async ({ toolCallId, toolOutput }, { dispatch, getState }) => {
     await dispatch(
-      handleErrors(async () => {
+      streamThunkWrapper(async () => {
         const state = getState();
+        const useTools = state.ui.useTools;
         const initialHistory = state.session.history;
         const defaultModel = selectDefaultModel(state);
+
+        if (!defaultModel) {
+          console.error("No default model found");
+          return;
+        }
 
         resetStateForNewMessage();
 
@@ -39,7 +45,7 @@ export const streamResponseAfterToolCall = createAsyncThunk<
           toolCallId,
         };
 
-        dispatch(streamUpdate(newMessage));
+        dispatch(streamUpdate([newMessage]));
         dispatch(
           addContextItemsAtIndex({
             index: initialHistory.length,
@@ -59,8 +65,10 @@ export const streamResponseAfterToolCall = createAsyncThunk<
         const messages = constructMessages(
           [...updatedHistory],
           defaultModel.model,
+          defaultModel.provider,
+          useTools,
         );
-        await dispatch(streamNormalInput(messages));
+        unwrapResult(await dispatch(streamNormalInput(messages)));
       }),
     );
   },

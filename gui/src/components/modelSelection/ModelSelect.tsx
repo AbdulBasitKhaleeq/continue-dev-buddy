@@ -7,16 +7,16 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { useContext, useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import styled from "styled-components";
-import {
-  defaultBorderRadius,
-  Divider,
-  lightGray,
-  vscInputBackground,
-} from "..";
+import { defaultBorderRadius, lightGray, vscInputBackground } from "..";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import AddModelForm from "../../forms/AddModelForm";
+import { useAppSelector } from "../../redux/hooks";
+import {
+  selectDefaultModel,
+  setDefaultModel,
+} from "../../redux/slices/configSlice";
 import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
 import {
   getFontSize,
@@ -24,11 +24,7 @@ import {
   isMetaEquivalentKeyPressed,
 } from "../../util";
 import ConfirmationDialog from "../dialogs/ConfirmationDialog";
-import { useAppSelector } from "../../redux/hooks";
-import {
-  selectDefaultModel,
-  setDefaultModel,
-} from "../../redux/slices/configSlice";
+import { Divider } from "./platform/shared";
 
 interface ModelOptionProps {
   option: Option;
@@ -144,7 +140,7 @@ function ModelOption({
   const dispatch = useDispatch();
   const [hovered, setHovered] = useState(false);
 
-  function onClickDelete(e) {
+  function onClickDelete(e: any) {
     e.stopPropagation();
     e.preventDefault();
 
@@ -164,7 +160,7 @@ function ModelOption({
     );
   }
 
-  function onClickGear(e) {
+  function onClickGear(e: any) {
     e.stopPropagation();
     e.preventDefault();
 
@@ -173,7 +169,7 @@ function ModelOption({
     });
   }
 
-  function handleOptionClick(e) {
+  function handleOptionClick(e: any) {
     if (showMissingApiKeyMsg) {
       e.preventDefault();
       e.stopPropagation();
@@ -264,7 +260,8 @@ function ModelSelect() {
         );
         let nextIndex = (currentIndex + 1 * direction) % options.length;
         if (nextIndex < 0) nextIndex = options.length - 1;
-        dispatch(setDefaultModel({ title: options[nextIndex].value }));
+        const newModelTitle = options[nextIndex].value;
+        dispatch(setDefaultModel({ title: newModelTitle }));
       }
     };
 
@@ -286,7 +283,7 @@ function ModelSelect() {
     setShowAbove(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
   }
 
-  function onClickAddModel(e) {
+  function onClickAddModel(e: MouseEvent) {
     e.stopPropagation();
     e.preventDefault();
 
@@ -311,11 +308,11 @@ function ModelSelect() {
       onChange={async (val: string) => {
         if (val === defaultModel?.title) return;
         dispatch(setDefaultModel({ title: val }));
-        await ideMessenger.request("update/modelChange", val);
       }}
     >
       <div className="relative">
         <StyledListboxButton
+          data-testid="model-select-button"
           ref={buttonRef}
           className="h-[18px] overflow-hidden"
           style={{ padding: 0 }}

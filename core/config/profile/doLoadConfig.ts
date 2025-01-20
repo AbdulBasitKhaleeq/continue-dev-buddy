@@ -1,3 +1,7 @@
+import fs from "fs";
+
+import { ConfigResult, ConfigValidationError } from "@continuedev/config-yaml";
+import { ClientConfigYaml } from "@continuedev/config-yaml/dist/schemas";
 import {
   ContinueConfig,
   ContinueRcJson,
@@ -5,16 +9,17 @@ import {
   IdeSettings,
   SerializedContinueConfig,
 } from "../../";
-import { ContinueProxyReranker } from "../../context/rerankers/ContinueProxyReranker.js";
 import { ControlPlaneProxyInfo } from "../../control-plane/analytics/IAnalyticsProvider.js";
 import { ControlPlaneClient } from "../../control-plane/client.js";
 import { controlPlaneEnv } from "../../control-plane/env.js";
 import { TeamAnalytics } from "../../control-plane/TeamAnalytics.js";
-import ContinueProxyEmbeddingsProvider from "../../indexing/embeddings/ContinueProxyEmbeddingsProvider";
 import ContinueProxy from "../../llm/llms/stubs/ContinueProxy";
+import { getConfigYamlPath } from "../../util/paths";
 import { Telemetry } from "../../util/posthog";
 import { TTS } from "../../util/tts";
-import { ConfigResult, loadFullConfigNode } from "../load";
+import { loadFullConfigNode } from "../load";
+import { loadContinueConfigFromYaml } from "../yaml/loadYaml";
+import { PlatformConfigMetadata } from "./PlatformProfileLoader";
 
 export default async function doLoadConfig(
   ide: IDE,
@@ -22,6 +27,8 @@ export default async function doLoadConfig(
   controlPlaneClient: ControlPlaneClient,
   writeLog: (message: string) => Promise<void>,
   overrideConfigJson: SerializedContinueConfig | undefined,
+  overrideConfigYaml: ClientConfigYaml | undefined,
+  platformConfigMetadata: PlatformConfigMetadata | undefined,
   workspaceId?: string,
 ): Promise<ConfigResult<ContinueConfig>> {
   const workspaceConfigs = await getWorkspaceConfigs(ide);
@@ -30,20 +37,43 @@ export default async function doLoadConfig(
   const ideSettings = await ideSettingsPromise;
   const workOsAccessToken = await controlPlaneClient.getAccessToken();
 
-  let {
-    config: newConfig,
-    errors,
-    configLoadInterrupted,
-  } = await loadFullConfigNode(
-    ide,
-    workspaceConfigs,
-    ideSettings,
-    ideInfo.ideType,
-    uniqueId,
-    writeLog,
-    workOsAccessToken,
-    overrideConfigJson,
-  );
+  const configYamlPath = getConfigYamlPath(ideInfo.ideType);
+
+  let newConfig: ContinueConfig | undefined;
+  let errors: ConfigValidationError[] | undefined;
+  let configLoadInterrupted = false;
+
+  if (fs.existsSync(configYamlPath) || overrideConfigYaml) {
+    const result = await loadContinueConfigFromYaml(
+      ide,
+      workspaceConfigs.map((c) => JSON.stringify(c)),
+      ideSettings,
+      ideInfo.ideType,
+      uniqueId,
+      writeLog,
+      workOsAccessToken,
+      overrideConfigYaml,
+      platformConfigMetadata,
+      controlPlaneClient,
+    );
+    newConfig = result.config;
+    errors = result.errors;
+    configLoadInterrupted = result.configLoadInterrupted;
+  } else {
+    const result = await loadFullConfigNode(
+      ide,
+      workspaceConfigs,
+      ideSettings,
+      ideInfo.ideType,
+      uniqueId,
+      writeLog,
+      workOsAccessToken,
+      overrideConfigJson,
+    );
+    newConfig = result.config;
+    errors = result.errors;
+    configLoadInterrupted = result.configLoadInterrupted;
+  }
 
   if (configLoadInterrupted || !newConfig) {
     return { errors, config: newConfig, configLoadInterrupted: true };
@@ -111,13 +141,11 @@ async function injectControlPlaneProxyInfo(
   );
 
   if (config.embeddingsProvider?.providerName === "continue-proxy") {
-    (
-      config.embeddingsProvider as ContinueProxyEmbeddingsProvider
-    ).controlPlaneProxyInfo = info;
+    (config.embeddingsProvider as ContinueProxy).controlPlaneProxyInfo = info;
   }
 
-  if (config.reranker?.name === "continue-proxy") {
-    (config.reranker as ContinueProxyReranker).controlPlaneProxyInfo = info;
+  if (config.reranker?.providerName === "continue-proxy") {
+    (config.reranker as ContinueProxy).controlPlaneProxyInfo = info;
   }
 
   return config;

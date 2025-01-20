@@ -1,4 +1,3 @@
-import { ModelProvider } from "core";
 import { HTMLInputTypeAttribute } from "react";
 import { ModelProviderTags } from "../../../components/modelSelection/utils";
 import { FREE_TRIAL_LIMIT_REQUESTS } from "../../../util/freeTrial";
@@ -24,7 +23,7 @@ export interface InputDescriptor {
 export interface ProviderInfo {
   title: string;
   icon?: string;
-  provider: ModelProvider;
+  provider: string;
   description: string;
   longDescription?: string;
   tags?: ModelProviderTags[];
@@ -50,7 +49,7 @@ export const apiBaseInput: InputDescriptor = {
   required: false,
 };
 
-export const providers: Partial<Record<ModelProvider, ProviderInfo>> = {
+export const providers: Partial<Record<string, ProviderInfo>> = {
   openai: {
     title: "OpenAI",
     provider: "openai",
@@ -161,6 +160,36 @@ export const providers: Partial<Record<ModelProvider, ProviderInfo>> = {
     ],
     packages: [models.llama31Chat, models.deepseek],
     apiKeyUrl: "https://function.network/join-waitlist",
+  },
+  scaleway: {
+    title: "Scaleway",
+    provider: "scaleway",
+    refPage: "scaleway",
+    description:
+      "Use the Scaleway Generative APIs to instantly access leading open models",
+    longDescription: `Hosted in European data centers, ideal for developers requiring low latency, full data privacy, and compliance with EU AI Act. You can generate your API key in [Scaleway's console](https://console.scaleway.com/generative-api/models). Get started:\n1. Create an API key [here](https://console.scaleway.com/iam/api-keys/)\n2. Paste below\n3. Select a model preset`,
+    params: {
+      apiKey: "",
+    },
+    collectInputFor: [
+      {
+        inputType: "text",
+        key: "apiKey",
+        label: "API key",
+        placeholder: "Enter your Scaleway API key",
+        required: true,
+      },
+      ...completionParamsInputsConfigs,
+    ],
+    icon: "scaleway.png",
+    tags: [ModelProviderTags.RequiresApiKey, ModelProviderTags.OpenSource],
+    packages: [
+      models.llama318bChat,
+      models.llama3170bChat,
+      models.mistralNemo,
+      models.Qwen25Coder32b,
+    ],
+    apiKeyUrl: "https://console.scaleway.com/iam/api-keys",
   },
   azure: {
     title: "Azure OpenAI",
@@ -313,7 +342,6 @@ Select the \`GPT-4o\` model below to complete your provider configuration, but n
       models.llama3170bChat,
       models.llama318bChat,
       { ...models.mixtralTrial, title: "Mixtral" },
-      models.llama270bChat,
       {
         ...models.AUTODETECT,
         params: {
@@ -376,6 +404,35 @@ Select the \`GPT-4o\` model below to complete your provider configuration, but n
       return p;
     }),
     apiKeyUrl: "https://api.together.xyz/settings/api-keys",
+  },
+  novita: {
+    title: "NovitaAI",
+    provider: "novita",
+    refPage: "novita",
+    description:
+      "Use Novita AI API for extremely fast streaming of open-source models",
+    icon: "novita.png",
+    longDescription: `[Novita AI](https://novita.ai?utm_source=github_continuedev&utm_medium=github_readme&utm_campaign=github_link) offers an affordable, reliable, and simple inference platform with scalable [LLM APIs](https://novita.ai/docs/model-api/reference/introduction.html), empowering developers to build AI applications. To get started with Novita AI:\n1. Obtain an API key from [here](https://novita.ai/settings/key-management?utm_source=github_continuedev&utm_medium=github_readme&utm_campaign=github_link)\n2. Paste below\n3. Select a model preset`,
+    tags: [ModelProviderTags.RequiresApiKey, ModelProviderTags.OpenSource],
+    params: {
+      apiKey: "",
+    },
+    collectInputFor: [
+      {
+        inputType: "text",
+        key: "apiKey",
+        label: "API Key",
+        placeholder: "Enter your Novita AI API key",
+        required: true,
+      },
+      ...completionParamsInputsConfigs,
+    ],
+    packages: [models.llama318BChat, models.mistralChat].map((p) => {
+      p.params.contextLength = 4096;
+      return p;
+    }),
+    apiKeyUrl:
+      "https://novita.ai/settings/key-management?utm_source=github_continuedev&utm_medium=github_readme&utm_campaign=github_link",
   },
   gemini: {
     title: "Google Gemini API",
@@ -755,14 +812,24 @@ To get started, [register](https://dataplatform.cloud.ibm.com/registration/stepo
       ...completionParamsInputsConfigs,
     ],
     packages: [
-      models.gpt4gov,
-      models.gpt4ogov,
+      models.asksagegpt4ogov,
+      models.asksagegpt4ominigov,
+      models.asksagegpt4gov,
+      models.asksagegpt35gov,
       models.gpt4o,
       models.gpt4omini,
+      models.asksagegpt4,
+      models.asksagegpt432,
+      models.asksagegpto1,
+      models.asksagegpto1mini,
       models.gpt35turbo,
+      models.asksageclaude35gov,
       models.claude35Sonnet,
       models.claude3Opus,
       models.claude3Sonnet,
+      models.grokBeta,
+      models.asksagegroqllama33,
+      models.asksagegroq70b,
       models.mistralLarge,
       models.llama370bChat,
       models.gemini15Pro,
@@ -826,9 +893,10 @@ To get started, [register](https://dataplatform.cloud.ibm.com/registration/stepo
       },
     ],
     packages: [
-      models.Qwen25Coder_7b,
-      models.Qwen25Coder_7b_pro,
+      models.QwenQwQ_32b_preview,
       models.Qwen25Coder_32b,
+      models.Hunyuan_a52b,
+      models.Llama31Nemotron_70b,
     ],
     apiKeyUrl: "https://cloud.siliconflow.cn/account/ak",
   },

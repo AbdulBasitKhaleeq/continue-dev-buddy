@@ -7,6 +7,12 @@ const darkCodeTheme = themes.dracula;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
+  // Docusaurus V3.6 experimental faster compile features
+  // https://docusaurus.io/blog/releases/3.6#adoption-strategy
+  future: {
+    experimental_faster: true,
+  },
+
   title: "Continue",
   tagline:
     "the open-source library for accelerating software development with language models",
@@ -381,7 +387,11 @@ const config = {
           },
           {
             to: "/customize/model-providers/more/together",
-            from: "/reference/Model Providers/togetherllm",
+            from: "/reference/Model Providers/together",
+          },
+          {
+            to: "/customize/model-providers/more/novita",
+            from: "/reference/Model Providers/novita",
           },
           {
             to: "/customize/model-providers/more/vllm",
